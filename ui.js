@@ -297,47 +297,88 @@ class GameInfoPanel extends UIElement {
 class GuaDisplay extends UIElement {
     constructor(x, y, width, height) {
         super(x, y, width, height);
-        this.guaName = '';
-        this.guaSymbol = '';
-        this.yaos = [];
-        this.changingYaos = [];
+        this.originalGuaName = ''; // 本卦名称
+        this.originalGuaSymbol = ''; // 本卦符号
+        this.originalYaos = []; // 本卦爻值
+        this.changingGuaName = ''; // 变卦名称
+        this.changingGuaSymbol = ''; // 变卦符号
+        this.changingYaos = []; // 变卦爻值
+        this.changingYaoIndices = []; // 变爻位置
     }
 
-    setGuaData(name, symbol, yaos) {
-        this.guaName = name;
-        this.guaSymbol = symbol;
-        this.yaos = yaos;
-        // 修复变爻计算：保持原始数组的index
-        this.changingYaos = yaos
+    setGuaData(originalName, originalSymbol, originalYaos, changingGuaData = null) {
+        this.originalGuaName = originalName;
+        this.originalGuaSymbol = originalSymbol;
+        this.originalYaos = originalYaos;
+        
+        // 计算变爻位置
+        this.changingYaoIndices = originalYaos
             .map((yao, index) => yao === 9 || yao === 6 ? index + 1 : null)
             .filter(yao => yao !== null);
+        
+        // 如果提供了变卦数据，使用它；否则计算变卦
+        if (changingGuaData) {
+            this.changingGuaName = changingGuaData.name;
+            this.changingGuaSymbol = changingGuaData.symbol;
+            this.changingYaos = changingGuaData.yaos;
+        } else {
+            // 计算变卦爻值
+            this.changingYaos = originalYaos.map(yao => {
+                if (yao === 6) return 7; // 老阴变少阳
+                if (yao === 9) return 8; // 老阳变少阴
+                return yao; // 少阴少阳不变
+            });
+            
+            // 计算变卦
+            const changingGua = StalksAlgorithm.calculateGuaFromYaos(this.changingYaos);
+            this.changingGuaName = changingGua.name;
+            this.changingGuaSymbol = changingGua.symbol;
+        }
     }
 
     render(ctx) {
         if (!this.visible) return;
 
-        // 绘制卦名和完整解读
-        ctx.fillStyle = '#FFD700';
-        ctx.font = 'bold 1.8rem "Microsoft YaHei", sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(`${this.guaSymbol} ${this.guaName}卦`, this.x + this.width / 2, this.y + 30);
+        // 绘制本卦信息
+        this.renderGua(ctx, this.originalGuaName, this.originalGuaSymbol, this.originalYaos, this.y + 30, '本卦');
         
-        // 绘制卦的解读
-        if (this.guaData && this.guaData.interpretation) {
-            ctx.fillStyle = '#90EE90';
+        // 绘制变卦信息
+        if (this.changingYaoIndices.length > 0) {
+            this.renderGua(ctx, this.changingGuaName, this.changingGuaSymbol, this.changingYaos, this.y + 180, '变卦');
+            
+            // 绘制变爻信息
+            ctx.fillStyle = '#FFD700';
             ctx.font = '1rem "Microsoft YaHei", sans-serif';
-            ctx.fillText(this.guaData.interpretation, this.x + this.width / 2, this.y + 55);
+            ctx.textAlign = 'center';
+            ctx.fillText(`变爻：第${this.changingYaoIndices.join('、')}爻`, this.x + this.width / 2, this.y + 320);
         }
+    }
 
+    /**
+     * 渲染单个卦象
+     * @param {CanvasRenderingContext2D} ctx - Canvas上下文
+     * @param {string} name - 卦名
+     * @param {string} symbol - 卦符号
+     * @param {Array} yaos - 爻值数组
+     * @param {number} startY - 起始Y坐标
+     * @param {string} title - 标题（本卦/变卦）
+     */
+    renderGua(ctx, name, symbol, yaos, startY, title) {
+        // 绘制标题
+        ctx.fillStyle = '#FFD700';
+        ctx.font = 'bold 1.2rem "Microsoft YaHei", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${title}：${symbol} ${name}卦`, this.x + this.width / 2, startY);
+        
         // 绘制六爻
-        const yaoWidth = 120;
-        const yaoHeight = 15;
-        const yaoSpacing = 5;
-        const startY = this.y + 70;
+        const yaoWidth = 100;
+        const yaoHeight = 12;
+        const yaoSpacing = 4;
+        const yaoStartY = startY + 30;
 
         for (let i = 5; i >= 0; i--) {
-            const yaoValue = this.yaos[i];
-            const yaoY = startY + (5 - i) * (yaoHeight + yaoSpacing);
+            const yaoValue = yaos[i];
+            const yaoY = yaoStartY + (5 - i) * (yaoHeight + yaoSpacing);
             const yaoX = this.x + (this.width - yaoWidth) / 2;
 
             // 绘制爻
@@ -346,19 +387,11 @@ class GuaDisplay extends UIElement {
             // 如果是变爻（老阳或老阴），在爻的旁边添加文字说明
             if (yaoValue === 9 || yaoValue === 6) {
                 ctx.fillStyle = '#90EE90';
-                ctx.font = '0.8rem "Microsoft YaHei", sans-serif';
+                ctx.font = '0.7rem "Microsoft YaHei", sans-serif';
                 ctx.textAlign = 'left';
                 const yaoName = yaoValue === 9 ? '老阳' : '老阴';
-                ctx.fillText(yaoName, yaoX + yaoWidth + 10, yaoY + yaoHeight / 2 + 3);
+                ctx.fillText(yaoName, yaoX + yaoWidth + 5, yaoY + yaoHeight / 2 + 2);
             }
-        }
-
-        // 绘制变爻信息（简化版，只显示基本变爻位置）
-        if (this.changingYaos.length > 0) {
-            ctx.fillStyle = '#FFD700';
-            ctx.font = '1rem "Microsoft YaHei", sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText(`变爻：第${this.changingYaos.join('、')}爻`, this.x + this.width / 2, this.y + 200);
         }
     }
 
@@ -366,19 +399,19 @@ class GuaDisplay extends UIElement {
         ctx.fillStyle = '#FFD700';
         
         if (yaoValue === 9) {
-            // 老阳 ⚊ - 实线（去掉圆圈）
+            // 老阳 ⚊ - 实线
             ctx.fillRect(x, y, width, height);
         } else if (yaoValue === 8) {
             // 少阴 ⚋ - 断线
-            ctx.fillRect(x, y, width / 2 - 8, height);
-            ctx.fillRect(x + width / 2 + 8, y, width / 2 - 8, height);
+            ctx.fillRect(x, y, width / 2 - 6, height);
+            ctx.fillRect(x + width / 2 + 6, y, width / 2 - 6, height);
         } else if (yaoValue === 7) {
             // 少阳 ⚊ - 实线
             ctx.fillRect(x, y, width, height);
         } else if (yaoValue === 6) {
-            // 老阴 ⚋ - 断线（去掉圆圈）
-            ctx.fillRect(x, y, width / 2 - 8, height);
-            ctx.fillRect(x + width / 2 + 8, y, width / 2 - 8, height);
+            // 老阴 ⚋ - 断线
+            ctx.fillRect(x, y, width / 2 - 6, height);
+            ctx.fillRect(x + width / 2 + 6, y, width / 2 - 6, height);
         }
     }
 }

@@ -771,18 +771,18 @@ class ResultScene extends Scene {
     createUI() {
         const canvas = this.engine.getCanvas();
 
-        // 创建卦象显示组件
+        // 创建卦象显示组件（增加高度以适应本卦和变卦同时显示）
         this.guaDisplay = new GuaDisplay(
             canvas.width / 2 - 150,
-            100,
+            80,
             300,
-            200
+            280
         );
 
         // 创建重新开始按钮
         this.restartButton = new Button(
             canvas.width / 2 - 110,
-            canvas.height - 100,
+            canvas.height - 80,
             100,
             40,
             '重新占卜',
@@ -792,7 +792,7 @@ class ResultScene extends Scene {
         // 创建新的占卜按钮
         this.newGameButton = new Button(
             canvas.width / 2 + 10,
-            canvas.height - 100,
+            canvas.height - 80,
             100,
             40,
             '新的占卜',
@@ -815,9 +815,22 @@ class ResultScene extends Scene {
             this.guaData = this.calculateGuaFromYaos(yaos);
             this.isGuaDataCalculated = true;
             
-            // 设置卦象数据到GuaDisplay组件
+            // 计算变卦
+            const changingYaos = StalksAlgorithm.calculateChangingGua(yaos);
+            const changingGuaData = this.calculateGuaFromYaos(changingYaos);
+            
+            // 设置卦象数据到GuaDisplay组件（同时传递本卦和变卦数据）
             if (this.guaDisplay) {
-                this.guaDisplay.setGuaData(this.guaData.name, this.guaData.symbol, yaos);
+                this.guaDisplay.setGuaData(
+                    this.guaData.name,
+                    this.guaData.symbol,
+                    yaos,
+                    {
+                        name: changingGuaData.name,
+                        symbol: changingGuaData.symbol,
+                        yaos: changingYaos
+                    }
+                );
                 this.guaDisplay.setVisible(true);
             }
             
@@ -827,13 +840,14 @@ class ResultScene extends Scene {
             console.log(`建议：${this.guaData.advice}`);
             
             // 获取变爻信息
-            const changingYaos = yaos
+            const changingYaoIndices = yaos
                 .map((yao, index) => yao === 9 || yao === 6 ? index + 1 : null)
                 .filter(yao => yao !== null);
             
-            if (changingYaos.length > 0 && window.StalksAlgorithm) {
-                const advice = window.StalksAlgorithm.getChangingYaoAdvice(changingYaos);
+            if (changingYaoIndices.length > 0 && window.StalksAlgorithm) {
+                const advice = window.StalksAlgorithm.getChangingYaoAdvice(changingYaoIndices);
                 console.log(`变爻提示：${advice}`);
+                console.log(`变卦：${changingGuaData.name} (${changingGuaData.symbol})`);
             }
         }
     }
@@ -869,22 +883,22 @@ class ResultScene extends Scene {
             ctx.fillStyle = '#fff';
             ctx.font = '1rem "Microsoft YaHei", sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText(this.guaData.interpretation, width / 2, height - 200);
+            ctx.fillText(this.guaData.interpretation, width / 2, height - 180);
             
             // 绘制卦象
             ctx.fillStyle = '#FFD700';
             ctx.font = '0.9rem "Microsoft YaHei", sans-serif';
-            ctx.fillText(this.guaData.symbolism, width / 2, height - 170);
+            ctx.fillText(this.guaData.symbolism, width / 2, height - 150);
             
             // 绘制建议
             ctx.fillStyle = '#90EE90';
             ctx.font = '0.9rem "Microsoft YaHei", sans-serif';
-            ctx.fillText('建议：' + this.guaData.advice, width / 2, height - 140);
+            ctx.fillText('建议：' + this.guaData.advice, width / 2, height - 120);
             
             // 绘制爻辞标题
             ctx.fillStyle = '#FFD700';
             ctx.font = 'bold 0.9rem "Microsoft YaHei", sans-serif';
-            ctx.fillText('爻辞：', width / 2, height - 100);
+            ctx.fillText('爻辞：', width / 2, height - 80);
             
             // 绘制六爻爻辞
             ctx.fillStyle = '#fff';
@@ -902,7 +916,7 @@ class ResultScene extends Scene {
             
             // 绘制每个爻的信息
             for (let i = 0; i < 6; i++) {
-                const y = height - 70 + i * 15;
+                const y = height - 50 + i * 15;
                 ctx.fillText(yaoTexts[i], width / 2, y);
             }
         }

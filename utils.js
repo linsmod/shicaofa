@@ -516,6 +516,20 @@ class StalksAlgorithm {
     }
 
     /**
+     * 计算变卦
+     * @param {Array} yaos - 原始爻值数组
+     * @returns {Array} 变卦爻值数组
+     */
+    static calculateChangingGua(yaos) {
+        return yaos.map(yao => {
+            // 老阴(6)变阳爻，老阳(9)变阴爻，少阴少阳不变
+            if (yao === 6) return 7; // 老阴变少阳
+            if (yao === 9) return 8; // 老阳变少阴
+            return yao; // 少阴少阳不变
+        });
+    }
+
+    /**
      * 获取变爻建议
      * @param {Array} changingYaos - 变爻数组
      * @returns {string} 建议文本
@@ -526,7 +540,7 @@ class StalksAlgorithm {
             2: '二爻变动，居中守正，可稳步前进',
             3: '三爻变动，多有波折，需审时度势',
             4: '四爻变动，近君之位，当恭敬谨慎',
-            5: '五爻变动，尊位之变，可大有作为',
+            5: '五爻变动，尊位之之变，可大有作为',
             6: '上爻变动，物极必反，宜知进退'
         };
 
