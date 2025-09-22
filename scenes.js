@@ -128,7 +128,7 @@ class GameScene extends Scene {
             offscreenLeftCtx: null,
             offscreenRightCtx: null,
             separationDistance: 0,
-            maxSeparation: 100,
+            maxSeparation: 0, // 将在初始化时动态计算为对角线的一半
 
             // 分割线和分组信息（在特效之前记录）
             divisionLine: null,
@@ -146,6 +146,15 @@ class GameScene extends Scene {
             backupTime: 0
         };
 
+        // 进度条Canvas系统
+        this.progressCanvas = {
+            canvas: null,
+            ctx: null,
+            container: null,
+            width: 0,
+            height: 0
+        };
+
         // UI元素
         this.settingsPanel = null;
         this.gameInfoPanel = null;
@@ -159,6 +168,7 @@ class GameScene extends Scene {
         this.initStalks();
         this.initMultiCanvasSystem();
         this.initCanvasBackup();
+        this.initProgressCanvas();
         this.createUI();
         this.setupEventListeners();
         this.updateDisplay();
@@ -178,6 +188,152 @@ class GameScene extends Scene {
         this.canvasBackup.backupCtx = this.canvasBackup.backupCanvas.getContext('2d');
         
         console.log('Canvas备份系统初始化完成');
+    }
+
+    /**
+     * 初始化进度条Canvas系统
+     */
+    initProgressCanvas() {
+        const canvas = this.engine.getCanvas();
+        const rect = canvas.getBoundingClientRect();
+        const displayWidth = rect.width;
+        const displayHeight = rect.height;
+        
+        // 获取主canvas的实际像素尺寸（考虑设备像素比）
+        const dpr = window.devicePixelRatio || 1;
+        const actualWidth = canvas.width;
+        const actualHeight = canvas.height;
+        
+        // 创建进度条容器
+        this.progressCanvas.container = document.createElement('div');
+        this.progressCanvas.container.style.position = 'absolute';
+        this.progressCanvas.container.style.left = '0';
+        this.progressCanvas.container.style.top = '0';
+        this.progressCanvas.container.style.width = displayWidth + 'px';
+        this.progressCanvas.container.style.height = displayHeight + 'px';
+        this.progressCanvas.container.style.pointerEvents = 'none';
+        this.progressCanvas.container.style.zIndex = '25'; // 确保在最上层
+        
+        // 创建进度条Canvas
+        this.progressCanvas.canvas = document.createElement('canvas');
+        this.progressCanvas.canvas.width = actualWidth;  // 使用实际像素宽度
+        this.progressCanvas.canvas.height = 60 * dpr;  // 固定高度为60像素，考虑设备像素比
+        this.progressCanvas.canvas.style.position = 'absolute';
+        this.progressCanvas.canvas.style.left = '0';
+        this.progressCanvas.canvas.style.top = '0';
+        this.progressCanvas.canvas.style.width = displayWidth + 'px';  // CSS宽度与主画布一致
+        this.progressCanvas.canvas.style.height = '60px';  // CSS高度固定
+        this.progressCanvas.canvas.style.pointerEvents = 'none';
+        
+        // 获取上下文
+        this.progressCanvas.ctx = this.progressCanvas.canvas.getContext('2d');
+        
+        // 添加到DOM
+        canvas.parentElement.appendChild(this.progressCanvas.container);
+        this.progressCanvas.container.appendChild(this.progressCanvas.canvas);
+        
+        // 初始化进度条内容
+        this.renderProgressCanvas();
+        
+        console.log('进度条Canvas系统初始化完成');
+    }
+
+    /**
+     * 渲染进度条Canvas内容
+     */
+    renderProgressCanvas() {
+        if (!this.progressCanvas.ctx || !this.progressCanvas.canvas) {
+            return;
+        }
+        
+        const canvas = this.engine.getCanvas();
+        const rect = canvas.getBoundingClientRect();
+        const displayWidth = rect.width;
+        const displayHeight = rect.height;
+        
+        // 获取设备像素比
+        const dpr = window.devicePixelRatio || 1;
+        
+        const actualWidth = this.progressCanvas.canvas.width;
+        const actualHeight = this.progressCanvas.canvas.height;
+        
+        // 清除Canvas
+        this.progressCanvas.ctx.clearRect(0, 0, actualWidth, actualHeight);
+        
+        // 保存当前状态
+        this.progressCanvas.ctx.save();
+        
+        // 缩放上下文以匹配CSS尺寸
+        this.progressCanvas.ctx.scale(dpr, dpr);
+        
+        // 计算缩放后的绘制参数
+        const scaledWidth = displayWidth;
+        const scaledHeight = 60; // CSS高度固定为60px
+        
+        // 绘制进度背景
+        this.progressCanvas.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        this.progressCanvas.ctx.fillRect(0, 0, scaledWidth/2, scaledHeight);
+        
+        // 添加内边距
+        const padding = 0; // 上padding减半
+        const contentWidth = scaledWidth - padding * 2;
+        const contentHeight = scaledHeight - padding * 2;
+        
+        // 绘制进度标题
+        this.progressCanvas.ctx.fillStyle = '#FFD700';
+        this.progressCanvas.ctx.font = 'bold 16px "Microsoft YaHei", sans-serif';
+        this.progressCanvas.ctx.textAlign = 'left';
+        this.progressCanvas.ctx.fillText('取爻', padding, padding);
+        
+        // 绘制六个爻的进度方块
+        const yaoAreaStartX = padding + 20; // 减少间距，从80改为50
+        const yaoAreaY = padding + 35;
+        const yaoBlockSize = 10;
+        const yaoSpacing = 3;
+        const endofX = 0;
+        for (let yao = 0; yao < 6; yao++) {
+            const yaoX = yaoAreaStartX + yao * 50;
+            
+            // 绘制爻标签
+            this.progressCanvas.ctx.fillStyle = '#FFD700';
+            this.progressCanvas.ctx.font = '12px "Microsoft YaHei", sans-serif';
+            this.progressCanvas.ctx.textAlign = 'center';
+            
+            let yaoName;
+            switch (yao) {
+                case 0: yaoName = '初'; break;
+                case 1: yaoName = '二'; break;
+                case 2: yaoName = '三'; break;
+                case 3: yaoName = '四'; break;
+                case 4: yaoName = '五'; break;
+                case 5: yaoName = '上'; break;
+                default: yaoName = `${yao + 1}`;
+            }
+            
+            const firstBlockX = yaoX + (yaoBlockSize / 2);
+            this.progressCanvas.ctx.fillText(yaoName, firstBlockX, yaoAreaY - 8);
+            
+            // 绘制3个小方块
+            for (let change = 0; change < 3; change++) {
+                const blockX = yaoX + change * (yaoBlockSize + yaoSpacing);
+                const blockY = yaoAreaY;
+                
+                const stepIndex = yao * 3 + change;
+                if (stepIndex < this.currentStep) {
+                    this.progressCanvas.ctx.fillStyle = '#FFD700';
+                } else {
+                   //模拟一个立体阴影
+                    this.progressCanvas.ctx.fillStyle = '#ffffffff';
+                    this.progressCanvas.ctx.fillRect(blockX+1, blockY+1, yaoBlockSize, yaoBlockSize);
+                    this.progressCanvas.ctx.fillStyle = '#464646ff';
+                }
+                
+                this.progressCanvas.ctx.fillRect(blockX, blockY, yaoBlockSize, yaoBlockSize);
+            }
+        }
+        
+        // 恢复状态
+        this.progressCanvas.ctx.restore();
     }
 
     /**
@@ -279,6 +435,12 @@ class GameScene extends Scene {
         const dpr = window.devicePixelRatio || 1;
         const actualWidth = canvas.width;
         const actualHeight = canvas.height;
+        
+        // 计算对角线的一半作为最大分离距离，确保左右canvas能移动到画布外面
+        const diagonal = Math.sqrt(displayWidth * displayWidth + displayHeight * displayHeight);
+        this.effectSystem.maxSeparation = diagonal / 2;
+        
+        console.log(`计算的最大分离距离: ${this.effectSystem.maxSeparation}px (对角线: ${diagonal}px)`);
         
         // 创建容器div
         this.effectSystem.canvi = document.createElement('div');
@@ -426,6 +588,13 @@ class GameScene extends Scene {
         const dpr = window.devicePixelRatio || 1;
         const actualWidth = canvas.width;
         const actualHeight = canvas.height;
+        
+        // 如果maxSeparation还没有计算，则计算对角线的一半
+        if (this.effectSystem.maxSeparation === 0) {
+            const diagonal = Math.sqrt(displayWidth * displayWidth + displayHeight * displayHeight);
+            this.effectSystem.maxSeparation = diagonal / 2;
+            console.log(`在createAnimCanvas中计算的最大分离距离: ${this.effectSystem.maxSeparation}px (对角线: ${diagonal}px)`);
+        }
 
         // 确保多Canvas容器可见
         if (this.effectSystem.canvi) {
@@ -1081,6 +1250,9 @@ class GameScene extends Scene {
             this.currentStep++;
             this.currentChange++;
 
+            // 更新进度条Canvas
+            this.renderProgressCanvas();
+
             if (this.currentChange >= 3) {
                 const yaoValue = this.calculateYaoValue();
                 this.yaos.push(yaoValue);
@@ -1519,8 +1691,8 @@ class GameScene extends Scene {
         // 渲染特效
         this.renderEffects(ctx);
 
-        // 绘制进度提示
-        this.drawProgress(ctx, width, height);
+        // 更新进度条Canvas（不再在主画布上绘制进度条）
+        this.renderProgressCanvas();
 
         // 渲染UI元素
         if (this.settingsButton) this.settingsButton.render(ctx);
@@ -1613,7 +1785,7 @@ class GameScene extends Scene {
         ctx.fillStyle = '#FFD700';
         ctx.font = 'bold 14px "Microsoft YaHei", sans-serif';
         ctx.textAlign = 'left';
-        ctx.fillText('进度', progressPadding + 10, progressY + 20);
+        // ctx.fillText('进度', progressPadding - 10, progressY + 20);
 
         // 绘制六个爻的进度方块
         const yaoAreaStartX = progressPadding + 60;
