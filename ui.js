@@ -18,6 +18,7 @@ class Button extends UIElement {
         this.borderWidth = 1;
         this.isHovered = false;
         this.isPressed = false;
+        this.isDragging = false;
     }
 
     setBackgroundColor(color) {
@@ -47,24 +48,47 @@ class Button extends UIElement {
     render(ctx) {
         if (!this.visible || !this.enabled) return;
 
+        // 计算绘制位置（按下时添加位移）
+        const offsetX = this.isPressed ? 2 : 0;
+        const offsetY = this.isPressed ? 2 : 0;
+        const drawX = this.x + offsetX;
+        const drawY = this.y + offsetY;
+
         // 绘制按钮背景
         if (this.backgroundColor.startsWith('linear-gradient')) {
-            // 简化的渐变效果
-            const gradient = ctx.createLinearGradient(this.x, this.y, this.x, this.y + this.height);
-            if (this.isPressed) {
-                gradient.addColorStop(0, '#A0522D');
-                gradient.addColorStop(1, '#8B4513');
+            // 解析渐变字符串中的颜色值
+            const gradientMatch = this.backgroundColor.match(/linear-gradient\([^,]+,\s*([^,]+),\s*([^)]+)\)/);
+            if (gradientMatch) {
+                const color1 = gradientMatch[1].trim();
+                const color2 = gradientMatch[2].trim();
+                
+                const gradient = ctx.createLinearGradient(drawX, drawY, drawX, drawY + this.height);
+                if (this.isPressed) {
+                    gradient.addColorStop(0, color2);
+                    gradient.addColorStop(1, color1);
+                } else {
+                    gradient.addColorStop(0, color1);
+                    gradient.addColorStop(1, color2);
+                }
+                ctx.fillStyle = gradient;
             } else {
-                gradient.addColorStop(0, '#8B4513');
-                gradient.addColorStop(1, '#A0522D');
+                // 如果解析失败，使用默认颜色
+                const gradient = ctx.createLinearGradient(drawX, drawY, drawX, drawY + this.height);
+                if (this.isPressed) {
+                    gradient.addColorStop(0, '#A0522D');
+                    gradient.addColorStop(1, '#8B4513');
+                } else {
+                    gradient.addColorStop(0, '#8B4513');
+                    gradient.addColorStop(1, '#A0522D');
+                }
+                ctx.fillStyle = gradient;
             }
-            ctx.fillStyle = gradient;
         } else {
             ctx.fillStyle = this.backgroundColor;
         }
 
         // 绘制圆角矩形
-        this.drawRoundedRect(ctx, this.x, this.y, this.width, this.height, 25);
+        this.drawRoundedRect(ctx, drawX, drawY, this.width, this.height, 25);
 
         // 绘制边框
         ctx.strokeStyle = this.borderColor;
@@ -76,7 +100,7 @@ class Button extends UIElement {
         ctx.font = `${this.fontWeight} ${this.fontSize} "Microsoft YaHei", sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(this.text, this.x + this.width / 2, this.y + this.height / 2);
+        ctx.fillText(this.text, drawX + this.width / 2, drawY + this.height / 2);
     }
 
     drawRoundedRect(ctx, x, y, width, height, radius) {
@@ -96,6 +120,60 @@ class Button extends UIElement {
 
     isPointInside(x, y) {
         return super.isPointInside(x, y) && this.enabled;
+    }
+
+    // 鼠标按下事件
+    handleMouseDown(x, y) {
+        if (this.isPointInside(x, y)) {
+            this.isPressed = true;
+            this.isDragging = true;
+            return true;
+        }
+        return false;
+    }
+
+    // 鼠标释放事件
+    handleMouseUp(x, y) {
+        if (this.isPressed && this.isPointInside(x, y)) {
+            this.isPressed = false;
+            if (this.onClick) {
+                this.onClick();
+            }
+            return true;
+        }
+        this.isPressed = false;
+        this.isDragging = false;
+        return false;
+    }
+
+    // 鼠标移动事件
+    handleMouseMove(x, y) {
+        if (this.isDragging) {
+            const wasInside = this.isPressed;
+            const isInside = this.isPointInside(x, y);
+            
+            if (wasInside && !isInside) {
+                // 鼠标移出按钮区域
+                this.isPressed = false;
+            } else if (!wasInside && isInside) {
+                // 鼠标移入按钮区域
+                this.isPressed = true;
+            }
+            return true;
+        }
+        
+        // 更新悬停状态
+        const wasHovered = this.isHovered;
+        this.isHovered = this.isPointInside(x, y);
+        
+        return wasHovered !== this.isHovered;
+    }
+
+    // 鼠标离开事件
+    handleMouseLeave() {
+        this.isPressed = false;
+        this.isDragging = false;
+        this.isHovered = false;
     }
 }
 
@@ -368,7 +446,7 @@ class GuaDisplay extends UIElement {
         ctx.fillStyle = '#FFD700';
         ctx.font = 'bold 1.2rem "Microsoft YaHei", sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(`${title}：${symbol} ${name}卦`, this.x + this.width / 2, startY);
+        ctx.fillText(`${title}：${symbol} ${name}`, this.x + this.width / 2, startY);
         
         // 绘制六爻
         const yaoWidth = 100;

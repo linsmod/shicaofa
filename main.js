@@ -188,93 +188,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    /**
-     * 自动完成占卜
-     */
-    function autoComplete() {
-        if (currentGameScene) {
-            // 重置游戏状态，复用startGame的逻辑
-            startGame();
-            logManager.add('开始自动占卜');
-            
-            // 模拟用户操作，触发手动占卜流程
-            const simulateUserAction = () => {
-                if (currentGameScene.yaos.length < 6) {
-                    // 随机生成蓍草位置和分组
-                    const width = gameEngine.getCanvas().width;
-                    const height = gameEngine.getCanvas().height;
-                    const padding = 30;
-                    
-                    currentGameScene.stalks.forEach(stalk => {
-                        stalk.x = padding + Math.random() * (width - 2 * padding);
-                        stalk.y = padding + Math.random() * (height - 2 * padding);
-                        stalk.group = null;
-                        stalk.visible = true;
-                    });
-                    
-                    // 随机选择切分方向 - 使用更好的随机数生成器
-                    const directions = ['horizontal', 'vertical', 'diagonal1', 'diagonal2'];
-                    const cutDirection = directions[Math.floor(MathUtils.betterRandom(0, directions.length, true))];
-                    
-                    // 创建切分线并划分蓍草
-                    const centerX = width / 2;
-                    const centerY = height / 2;
-                    const cutLine = currentGameScene.createCutLine(centerX, centerY, cutDirection);
-                    
-                    currentGameScene.stalks.forEach(stalk => {
-                        const distance = MathUtils.pointToLineSignedDistance(
-                            stalk.x, stalk.y,
-                            cutLine.start.x, cutLine.start.y,
-                            cutLine.end.x, cutLine.end.y
-                        );
-                        
-                        if (distance > 0) {
-                            stalk.group = '地';
-                        } else {
-                            stalk.group = '天';
-                        }
-                    });
-                    
-                    currentGameScene.leftGroup = currentGameScene.stalks.filter(stalk => stalk.group === '天');
-                    currentGameScene.rightGroup = currentGameScene.stalks.filter(stalk => stalk.group === '地');
-                    currentGameScene.divided = true;
-                    
-                    // 调用手动占卜的performChange方法
-                    if (currentGameScene.performChange()) {
-                        currentGameScene.currentStep++;
-                        currentGameScene.currentChange++;
-                        
-                        if (currentGameScene.currentChange >= 3) {
-                            const yaoValue = currentGameScene.calculateYaoValue();
-                            if (yaoValue !== null) {
-                                currentGameScene.yaos.push(yaoValue);
-                                
-                                currentGameScene.currentChange = 0;
-                                currentGameScene.changeResults = [];
-                                currentGameScene.asideStalks = 0;
-                                currentGameScene.asideStalksType = '';
-                            } else {
-                                logManager.add('自动占卜中断：爻值计算错误');
-                                return;
-                            }
-                        }
-                        
-                        if (currentGameScene.yaos.length >= 6) {
-                            showResult();
-                            logManager.add('自动占卜完成');
-                        } else {
-                            setTimeout(simulateUserAction, 500);
-                        }
-                    } else {
-                        logManager.add('自动占卜中断：蓍草数量不足');
-                    }
-                }
-            };
-            
-            // 开始模拟
-            setTimeout(simulateUserAction, 100);
-        }
-    }
     
     /**
      * 切换设置面板
@@ -317,7 +230,6 @@ document.addEventListener('DOMContentLoaded', function() {
     window.startNewGame = startNewGame;
     window.backToGame = backToGame;
     window.clearLogs = clearLogs;
-    window.autoComplete = autoComplete;
     window.toggleSettings = toggleSettings;
     window.toggleDots = toggleDots;
     window.showLogs = showLogs;
@@ -335,10 +247,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // 按 'R' 键或 'r' 键重新开始
         if (e.key === 'R' || e.key === 'r') {
             restartGame();
-        }
-        // 按 'A' 键或 'a' 键自动完成
-        if (e.key === 'A' || e.key === 'a') {
-            autoComplete();
         }
     });
     

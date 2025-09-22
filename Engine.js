@@ -345,6 +345,7 @@ class Scene {
         this.engine = null;
         this.backgroundColor = '#228B22';
         this.isInitialized = false;
+        this.uiElements = []; // 存储所有UI元素
     }
 
     /**
@@ -421,6 +422,77 @@ class Scene {
      */
     init() {
         // 子类实现具体的初始化逻辑
+    }
+
+    /**
+     * 注册UI元素
+     * @param {UIElement} element - UI元素
+     */
+    registerUIElement(element) {
+        if (!this.uiElements.includes(element)) {
+            this.uiElements.push(element);
+        }
+    }
+
+    /**
+     * 注销UI元素
+     * @param {UIElement} element - UI元素
+     */
+    unregisterUIElement(element) {
+        const index = this.uiElements.indexOf(element);
+        if (index > -1) {
+            this.uiElements.splice(index, 1);
+        }
+    }
+
+    /**
+     * 获取所有UI元素
+     * @returns {Array} UI元素数组
+     */
+    getUIElements() {
+        return this.uiElements;
+    }
+
+    /**
+     * 统一的事件处理方法
+     * @param {string} eventType - 事件类型
+     * @param {Event} e - 事件对象
+     */
+    handleEvent(eventType, e) {
+        const rect = this.engine.getCanvas().getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        // 从后往前遍历，确保上层元素优先处理
+        for (let i = this.uiElements.length - 1; i >= 0; i--) {
+            const element = this.uiElements[i];
+            if (element.visible && element.enabled && element.isPointInside(x, y)) {
+                switch (eventType) {
+                    case 'mousedown':
+                        if (element.handleMouseDown) {
+                            element.handleMouseDown(x, y);
+                        }
+                        break;
+                    case 'mouseup':
+                        if (element.handleMouseUp) {
+                            element.handleMouseUp(x, y);
+                        }
+                        break;
+                    case 'mousemove':
+                        if (element.handleMouseMove) {
+                            element.handleMouseMove(x, y);
+                        }
+                        break;
+                    case 'click':
+                        if (element.onClick) {
+                            element.onClick();
+                        }
+                        break;
+                }
+                return true; // 事件已被处理
+            }
+        }
+        return false; // 事件未被处理
     }
 }
 

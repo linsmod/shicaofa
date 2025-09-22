@@ -15,6 +15,7 @@ class StartScene extends Scene {
 
     init() {
         this.createUI();
+        this.registerUIElements();
         this.setupEventListeners();
     }
 
@@ -34,20 +35,19 @@ class StartScene extends Scene {
         this.startButton.setFontWeight('bold');
     }
 
+    registerUIElements() {
+        // 注册开始按钮
+        this.registerUIElement(this.startButton);
+    }
+
     setupEventListeners() {
-        // 添加点击事件监听
-        this.engine.getCanvas().addEventListener('click', (e) => this.handleClick(e));
+        // 添加鼠标事件监听
+        this.engine.getCanvas().addEventListener('mousedown', (e) => this.handleEvent('mousedown', e));
+        this.engine.getCanvas().addEventListener('mouseup', (e) => this.handleEvent('mouseup', e));
+        this.engine.getCanvas().addEventListener('mousemove', (e) => this.handleEvent('mousemove', e));
+        this.engine.getCanvas().addEventListener('click', (e) => this.handleEvent('click', e));
     }
 
-    handleClick(e) {
-        const rect = this.engine.getCanvas().getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        if (this.startButton && this.startButton.isPointInside(x, y)) {
-            this.startButton.onClick();
-        }
-    }
 
     onStartButtonClick() {
         if (this.sceneManager) {
@@ -160,7 +160,6 @@ class GameScene extends Scene {
         this.gameInfoPanel = null;
         this.settingsButton = null;
         this.restartButton = null;
-        this.autoButton = null;
         this.logsButton = null;
     }
 
@@ -170,6 +169,7 @@ class GameScene extends Scene {
         this.initCanvasBackup();
         this.initProgressCanvas();
         this.createUI();
+        this.registerUIElements();
         this.setupEventListeners();
         this.updateDisplay();
     }
@@ -283,7 +283,7 @@ class GameScene extends Scene {
         this.progressCanvas.ctx.fillStyle = '#FFD700';
         this.progressCanvas.ctx.font = 'bold 16px "Microsoft YaHei", sans-serif';
         this.progressCanvas.ctx.textAlign = 'left';
-        this.progressCanvas.ctx.fillText('取爻', padding, padding);
+        this.progressCanvas.ctx.fillText('取', padding, padding);
         
         // 绘制六个爻的进度方块
         const yaoAreaStartX = padding + 20; // 减少间距，从80改为50
@@ -1395,16 +1395,6 @@ class GameScene extends Scene {
             () => this.restartGame()
         );
 
-        // 创建自动完成按钮
-        this.autoButton = new Button(
-            130,
-            canvas.height - 60,
-            100,
-            40,
-            '自动完成',
-            () => this.autoComplete()
-        );
-
         // 创建查看日志按钮
         this.logsButton = new Button(
             240,
@@ -1432,13 +1422,28 @@ class GameScene extends Scene {
         );
     }
 
+    registerUIElements() {
+        // 注册所有按钮
+        this.registerUIElement(this.settingsButton);
+        this.registerUIElement(this.restartButton);
+        this.registerUIElement(this.logsButton);
+        
+        // 注册面板（如果可见）
+        if (this.settingsPanel && this.settingsPanel.visible) {
+            this.registerUIElement(this.settingsPanel);
+        }
+        if (this.gameInfoPanel) {
+            this.registerUIElement(this.gameInfoPanel);
+        }
+    }
+
     setupEventListeners() {
         const canvas = this.engine.getCanvas();
 
         // 鼠标事件
-        canvas.addEventListener('mousedown', (e) => this.handleStart(e));
-        canvas.addEventListener('mousemove', (e) => this.handleMove(e));
-        canvas.addEventListener('mouseup', (e) => this.handleEnd(e));
+        canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e));
+        canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
+        canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e));
         canvas.addEventListener('click', (e) => this.handleClick(e));
 
         // 触摸事件
@@ -1484,14 +1489,96 @@ class GameScene extends Scene {
         this.dirty = true;
     }
 
-    handleClick(e) {
+    handleMouseDown(e) {
+        // 先处理UI元素事件
         const rect = this.engine.getCanvas().getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
 
-        // 检查是否点击了设置按钮
-        if (this.settingsButton && this.settingsButton.isPointInside(x, y)) {
-            this.settingsButton.onClick();
+        // 检查是否点击了UI元素
+        let uiHandled = false;
+        for (let i = this.uiElements.length - 1; i >= 0; i--) {
+            const element = this.uiElements[i];
+            if (element.visible && element.enabled && element.isPointInside(x, y)) {
+                if (element.handleMouseDown) {
+                    element.handleMouseDown(x, y);
+                }
+                uiHandled = true;
+                break;
+            }
+        }
+
+        // 如果没有点击UI元素，则处理蓍草拖拽
+        if (!uiHandled) {
+            this.handleStart(e);
+        }
+    }
+
+    handleMouseUp(e) {
+        // 先处理UI元素事件
+        const rect = this.engine.getCanvas().getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        // 检查是否释放了UI元素
+        let uiHandled = false;
+        for (let i = this.uiElements.length - 1; i >= 0; i--) {
+            const element = this.uiElements[i];
+            if (element.visible && element.enabled && element.isPointInside(x, y)) {
+                if (element.handleMouseUp) {
+                    element.handleMouseUp(x, y);
+                }
+                uiHandled = true;
+                break;
+            }
+        }
+
+        // 如果没有释放UI元素，则处理蓍草拖拽结束
+        if (!uiHandled) {
+            this.handleEnd(e);
+        }
+    }
+
+    handleMouseMove(e) {
+        // 先处理UI元素事件
+        const rect = this.engine.getCanvas().getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        // 检查鼠标是否在UI元素上
+        let uiHandled = false;
+        for (let i = this.uiElements.length - 1; i >= 0; i--) {
+            const element = this.uiElements[i];
+            if (element.visible && element.enabled && element.isPointInside(x, y)) {
+                if (element.handleMouseMove) {
+                    element.handleMouseMove(x, y);
+                }
+                uiHandled = true;
+                break;
+            }
+        }
+
+        // 如果鼠标不在UI元素上，则处理蓍草拖拽
+        if (!uiHandled && this.isDragging) {
+            this.handleMove(e);
+        }
+    }
+
+    handleClick(e) {
+        // 处理UI元素点击事件
+        const rect = this.engine.getCanvas().getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        // 检查是否点击了UI元素
+        for (let i = this.uiElements.length - 1; i >= 0; i--) {
+            const element = this.uiElements[i];
+            if (element.visible && element.enabled && element.isPointInside(x, y)) {
+                if (element.onClick) {
+                    element.onClick();
+                }
+                return; // UI元素点击事件已处理，不再传递
+            }
         }
     }
     createCutLine() {
@@ -1697,7 +1784,6 @@ class GameScene extends Scene {
         // 渲染UI元素
         if (this.settingsButton) this.settingsButton.render(ctx);
         if (this.restartButton) this.restartButton.render(ctx);
-        if (this.autoButton) this.autoButton.render(ctx);
         if (this.logsButton) this.logsButton.render(ctx);
         if (this.settingsPanel) this.settingsPanel.render(ctx);
         if (this.gameInfoPanel) this.gameInfoPanel.render(ctx);
@@ -1836,6 +1922,8 @@ class GameScene extends Scene {
     toggleSettings() {
         if (this.settingsPanel) {
             this.settingsPanel.setVisible(!this.settingsPanel.visible);
+            // 当设置面板可见性改变时，重新注册UI元素
+            this.registerUIElements();
         }
     }
 
@@ -1868,14 +1956,6 @@ class GameScene extends Scene {
         }
     }
 
-    autoComplete() {
-        // 调用全局的autoComplete函数，避免代码重复
-        if (window.autoComplete) {
-            window.autoComplete();
-        } else {
-            this.addLog("全局autoComplete函数不可用，请检查main.js");
-        }
-    }
 
     showLogs() {
         if (this.sceneManager) {
@@ -1932,6 +2012,7 @@ class ResultScene extends Scene {
             this.yaos = yaos;
         }
         this.createUI();
+        this.registerUIElements();
         // 不在这里调用generateResult，让外部控制调用时机
     }
 
@@ -1965,6 +2046,17 @@ class ResultScene extends Scene {
             '新的占卜',
             () => this.startNewGame()
         );
+    }
+
+    registerUIElements() {
+        // 注册卦象显示组件
+        if (this.guaDisplay) {
+            this.registerUIElement(this.guaDisplay);
+        }
+        
+        // 注册按钮
+        this.registerUIElement(this.restartButton);
+        this.registerUIElement(this.newGameButton);
     }
 
     generateResult() {
@@ -2112,6 +2204,7 @@ class LogsScene extends Scene {
     init(logs = []) {
         this.logsContent = logs;
         this.createUI();
+        this.registerUIElements();
     }
 
     createUI() {
@@ -2136,6 +2229,12 @@ class LogsScene extends Scene {
             '返回游戏',
             () => this.backToGame()
         );
+    }
+
+    registerUIElements() {
+        // 注册按钮
+        this.registerUIElement(this.clearButton);
+        this.registerUIElement(this.backButton);
     }
 
     render(ctx, width, height) {
