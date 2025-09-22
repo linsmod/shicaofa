@@ -105,7 +105,39 @@ class GameScene extends Scene {
         this.lastY = 0;
         this.trail = [];
         this.removalTimeout = null;
-        
+
+        // 特效系统
+        this.effectSystem = {
+            isActive: false,
+            currentEffect: null,
+            cutLine: null,
+            animationProgress: 0,
+            animationDuration: 800, // 调整到0.8秒，给切分效果更多时间
+            startTime: 0,
+            particles: [],
+            exitDirection: null,
+
+            // 多Canvas裁剪系统 - 在初始化时就创建
+            canvi: null,
+            leftCanvas: null,
+            rightCanvas: null,
+            leftCtx: null,
+            rightCtx: null,
+            offscreenLeftCanvas: null,
+            offscreenRightCanvas: null,
+            offscreenLeftCtx: null,
+            offscreenRightCtx: null,
+            separationDistance: 0,
+            maxSeparation: 100,
+
+            // 分割线和分组信息（在特效之前记录）
+            divisionLine: null,
+            divisionGroups: null,
+
+            // 初始化标志
+            isMultiCanvasInitialized: false
+        };
+
         // UI元素
         this.settingsPanel = null;
         this.gameInfoPanel = null;
@@ -117,21 +149,901 @@ class GameScene extends Scene {
 
     init() {
         this.initStalks();
+        this.initMultiCanvasSystem();
         this.createUI();
         this.setupEventListeners();
         this.updateDisplay();
     }
 
+    /**
+     * 启动切分特效
+     * @param {Object} cutLine - 切分线对象
+     */
+    startCutEffect(cutLine) {
+        this.effectSystem.isActive = true;
+        this.effectSystem.currentEffect = 'cut';
+        this.effectSystem.cutLine = cutLine;
+        this.effectSystem.animationProgress = 0;
+        this.effectSystem.startTime = performance.now();
+        this.effectSystem.particles = [];
+
+        // 计算法线方向
+        const lineVecX = cutLine.end.x - cutLine.start.x;
+        const lineVecY = cutLine.end.y - cutLine.start.y;
+        const lineLength = Math.sqrt(lineVecX * lineVecX + lineVecY * lineVecY);
+
+        // 法线方向（垂直于切分线）
+        this.effectSystem.exitDirection = {
+            x: -lineVecY / lineLength,
+            y: lineVecX / lineLength
+        };
+
+        // 验证法线方向
+        const validation = this.validateNormalDirection(cutLine);
+        if (!validation.isValid) {
+            console.warn('法线方向计算异常，可能影响特效效果');
+        }
+
+        // 创建粒子效果
+        this.createCutParticles(cutLine);
+
+        console.log('切分特效启动，法线方向:', this.effectSystem.exitDirection);
+
+        // 初始化多Canvas裁剪系统，使用已记录的分组信息
+        this.createAnimCanvas();
+    }
+
+    /**
+     * 初始化多Canvas裁剪系统
+     */
+    initMultiCanvasSystem() {
+        const canvas = this.engine.getCanvas();
+        const rect = canvas.getBoundingClientRect();
+        const displayWidth = rect.width;
+        const displayHeight = rect.height;
+        
+        // 创建容器div
+        this.effectSystem.canvi = document.createElement('div');
+        this.effectSystem.canvi.style.position = 'absolute';
+        this.effectSystem.canvi.style.left = '0';
+        this.effectSystem.canvi.style.top = '0';
+        this.effectSystem.canvi.style.width = displayWidth + 'px';
+        this.effectSystem.canvi.style.height = displayHeight + 'px';
+        this.effectSystem.canvi.style.pointerEvents = 'none';
+        this.effectSystem.canvi.style.zIndex = '5';
+        
+        // 创建左侧Canvas（用于显示）- 天组
+        this.effectSystem.leftCanvas = document.createElement('canvas');
+        this.effectSystem.leftCanvas.width = displayWidth;
+        this.effectSystem.leftCanvas.height = displayHeight;
+        this.effectSystem.leftCanvas.style.position = 'absolute';
+        this.effectSystem.leftCanvas.style.left = '0';
+        this.effectSystem.leftCanvas.style.top = '0';
+        this.effectSystem.leftCanvas.style.width = displayWidth + 'px';
+        this.effectSystem.leftCanvas.style.height = displayHeight + 'px';
+        this.effectSystem.leftCanvas.style.border = '3px solid #FFD700'; // 金色边框
+        this.effectSystem.leftCanvas.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.5)'; // 金色发光效果
+        
+        // 创建右侧Canvas（用于显示）- 地组
+        this.effectSystem.rightCanvas = document.createElement('canvas');
+        this.effectSystem.rightCanvas.width = displayWidth;
+        this.effectSystem.rightCanvas.height = displayHeight;
+        this.effectSystem.rightCanvas.style.position = 'absolute';
+        this.effectSystem.rightCanvas.style.left = '0';
+        this.effectSystem.rightCanvas.style.top = '0';
+        this.effectSystem.rightCanvas.style.width = displayWidth + 'px';
+        this.effectSystem.rightCanvas.style.height = displayHeight + 'px';
+        this.effectSystem.rightCanvas.style.border = '3px solid #FF6347'; // 红色边框
+        this.effectSystem.rightCanvas.style.boxShadow = '0 0 20px rgba(255, 99, 71, 0.5)'; // 红色发光效果
+        
+        // 创建OffscreenCanvas（用于离屏渲染）
+        this.effectSystem.offscreenLeftCanvas = new OffscreenCanvas(displayWidth, displayHeight);
+        this.effectSystem.offscreenRightCanvas = new OffscreenCanvas(displayWidth, displayHeight);
+        
+        // 获取上下文
+        this.effectSystem.leftCtx = this.effectSystem.leftCanvas.getContext('2d');
+        this.effectSystem.rightCtx = this.effectSystem.rightCanvas.getContext('2d');
+        this.effectSystem.offscreenLeftCtx = this.effectSystem.offscreenLeftCanvas.getContext('2d');
+        this.effectSystem.offscreenRightCtx = this.effectSystem.offscreenRightCanvas.getContext('2d');
+        
+        // 添加到DOM
+        canvas.parentElement.appendChild(this.effectSystem.canvi);
+        this.effectSystem.canvi.appendChild(this.effectSystem.leftCanvas);
+        this.effectSystem.canvi.appendChild(this.effectSystem.rightCanvas);
+        
+        // 初始化时复制主画布内容
+        const mainCanvas = this.engine.getCanvas();
+        const mainCtx = this.engine.getContext();
+        
+        // 左侧Canvas完整显示主画布内容
+        this.effectSystem.leftCtx.drawImage(mainCanvas, 0, 0);
+        
+        // 右侧Canvas完整显示主画布内容
+        this.effectSystem.rightCtx.drawImage(mainCanvas, 0, 0);
+        
+        // 添加半透明遮罩和标签
+        this.effectSystem.leftCtx.fillStyle = 'rgba(255, 215, 0, 0.2)';
+        this.effectSystem.leftCtx.fillRect(0, 0, displayWidth, displayHeight);
+        
+        this.effectSystem.rightCtx.fillStyle = 'rgba(255, 99, 71, 0.2)';
+        this.effectSystem.rightCtx.fillRect(0, 0, displayWidth, displayHeight);
+        
+        // 添加标签文字
+        this.effectSystem.leftCtx.fillStyle = '#FFD700';
+        this.effectSystem.leftCtx.font = 'bold 24px "Microsoft YaHei", sans-serif';
+        this.effectSystem.leftCtx.textAlign = 'center';
+        this.effectSystem.leftCtx.fillText('天组', displayWidth / 2, displayHeight / 2);
+        
+        this.effectSystem.rightCtx.fillStyle = '#FF6347';
+        this.effectSystem.rightCtx.font = 'bold 24px "Microsoft YaHei", sans-serif';
+        this.effectSystem.rightCtx.textAlign = 'center';
+        this.effectSystem.rightCtx.fillText('地组', displayWidth / 2, displayHeight / 2);
+        
+        // 标记为已初始化
+        this.effectSystem.isMultiCanvasInitialized = true;
+        
+        console.log('多Canvas裁剪系统初始化完成，包含OffscreenCanvas');
+    }
+
+    /**
+     * 初始化动画Canvas系统（使用预创建的OffscreenCanvas）
+     * @param {Object} cutLine - 切分线对象
+     */
+    createAnimCanvas(cutLine) {
+        if (!this.effectSystem.isMultiCanvasInitialized) {
+            console.warn('多Canvas系统未初始化，请先调用initMultiCanvasSystem');
+            return;
+        }
+
+        const canvas = this.engine.getCanvas();
+        const rect = canvas.getBoundingClientRect();
+        const displayWidth = rect.width;
+        const displayHeight = rect.height;
+
+        // 确保多Canvas容器可见
+        if (this.effectSystem.canvi) {
+            this.effectSystem.canvi.style.zIndex = '20';
+        }
+
+        // 左右都拷贝画布内容到OffscreenCanvas，根据斜率填充不需要的那半为透明
+        if (cutLine) {
+            // 计算法线方向
+            const lineVecX = cutLine.end.x - cutLine.start.x;
+            const lineVecY = cutLine.end.y - cutLine.start.y;
+            const lineLength = Math.sqrt(lineVecX * lineVecX + lineVecY * lineVecY);
+            const normalX = -lineVecY / lineLength;
+            const normalY = lineVecX / lineLength;
+
+            // 清除OffscreenCanvas
+            this.effectSystem.offscreenLeftCtx.clearRect(0, 0, displayWidth, displayHeight);
+            this.effectSystem.offscreenRightCtx.clearRect(0, 0, displayWidth, displayHeight);
+
+            // 拷贝主画布内容到两个OffscreenCanvas
+            const mainCanvas = this.engine.getCanvas();
+
+            // 左侧OffscreenCanvas：只显示切分线左侧的内容（天组）
+            this.effectSystem.offscreenLeftCtx.save();
+            this.effectSystem.offscreenLeftCtx.beginPath();
+            this.effectSystem.offscreenLeftCtx.moveTo(0, 0);
+            this.effectSystem.offscreenLeftCtx.lineTo(displayWidth, 0);
+            this.effectSystem.offscreenLeftCtx.lineTo(displayWidth, displayHeight);
+            this.effectSystem.offscreenLeftCtx.lineTo(0, displayHeight);
+
+            // 创建切分路径，只显示左侧
+            this.effectSystem.offscreenLeftCtx.moveTo(cutLine.start.x + normalX * 2, cutLine.start.y + normalY * 2);
+            for (let t = 0; t <= 1; t += 0.05) {
+                const x = cutLine.start.x + (cutLine.end.x - cutLine.start.x) * t;
+                const y = cutLine.start.y + (cutLine.end.y - cutLine.start.y) * t;
+                this.effectSystem.offscreenLeftCtx.lineTo(x + normalX * 2, y + normalY * 2);
+            }
+            this.effectSystem.offscreenLeftCtx.closePath();
+            this.effectSystem.offscreenLeftCtx.clip();
+
+            // 拷贝主画布内容
+            this.effectSystem.offscreenLeftCtx.drawImage(mainCanvas, 0, 0);
+            this.effectSystem.offscreenLeftCtx.restore();
+
+            // 右侧OffscreenCanvas：只显示切分线右侧的内容（地组）
+            this.effectSystem.offscreenRightCtx.save();
+            this.effectSystem.offscreenRightCtx.beginPath();
+            this.effectSystem.offscreenRightCtx.moveTo(0, 0);
+            this.effectSystem.offscreenRightCtx.lineTo(displayWidth, 0);
+            this.effectSystem.offscreenRightCtx.lineTo(displayWidth, displayHeight);
+            this.effectSystem.offscreenRightCtx.lineTo(0, displayHeight);
+
+            // 创建切分路径，只显示右侧
+            this.effectSystem.offscreenRightCtx.moveTo(cutLine.start.x - normalX * 2, cutLine.start.y - normalY * 2);
+            for (let t = 0; t <= 1; t += 0.05) {
+                const x = cutLine.start.x + (cutLine.end.x - cutLine.start.x) * t;
+                const y = cutLine.start.y + (cutLine.end.y - cutLine.start.y) * t;
+                this.effectSystem.offscreenRightCtx.lineTo(x - normalX * 2, y - normalY * 2);
+            }
+            this.effectSystem.offscreenRightCtx.closePath();
+            this.effectSystem.offscreenRightCtx.clip();
+
+            // 拷贝主画布内容
+            this.effectSystem.offscreenRightCtx.drawImage(mainCanvas, 0, 0);
+            this.effectSystem.offscreenRightCtx.restore();
+
+            // 根据斜率创建透明渐变效果
+            this.createSlopeBasedTransparency(cutLine, normalX, normalY);
+
+            // 将OffscreenCanvas内容复制到显示Canvas
+            this.copyOffscreenToDisplay();
+        }
+
+        console.log('动画Canvas系统初始化完成，使用预创建的OffscreenCanvas');
+    }
+
+    /**
+     * 将OffscreenCanvas内容复制到显示Canvas
+     */
+    copyOffscreenToDisplay() {
+        if (!this.effectSystem.leftCtx || !this.effectSystem.rightCtx ||
+            !this.effectSystem.offscreenLeftCanvas || !this.effectSystem.offscreenRightCanvas) {
+            return;
+        }
+
+        // 将OffscreenCanvas内容绘制到显示Canvas
+        this.effectSystem.leftCtx.clearRect(0, 0, this.effectSystem.leftCanvas.width, this.effectSystem.leftCanvas.height);
+        this.effectSystem.rightCtx.clearRect(0, 0, this.effectSystem.rightCanvas.width, this.effectSystem.rightCanvas.height);
+
+        this.effectSystem.leftCtx.drawImage(this.effectSystem.offscreenLeftCanvas, 0, 0);
+        this.effectSystem.rightCtx.drawImage(this.effectSystem.offscreenRightCanvas, 0, 0);
+    }
+
+    /**
+     * 根据斜率创建透明渐变效果
+     * @param {Object} cutLine - 切分线对象
+     * @param {number} normalX - 法线X分量
+     * @param {number} normalY - 法线Y分量
+     */
+    createSlopeBasedTransparency(cutLine, normalX, normalY) {
+        if (!this.effectSystem.leftCtx || !this.effectSystem.rightCtx) {
+            return;
+        }
+
+        // 计算切分线的角度
+        const lineVecX = cutLine.end.x - cutLine.start.x;
+        const lineVecY = cutLine.end.y - cutLine.start.y;
+        const angle = Math.atan2(lineVecY, lineVecX);
+
+        // 为左侧Canvas创建透明渐变（切分线右侧透明）
+        this.effectSystem.leftCtx.save();
+        this.effectSystem.leftCtx.globalCompositeOperation = 'destination-out';
+
+        const leftGradient = this.effectSystem.leftCtx.createLinearGradient(
+            cutLine.start.x, cutLine.start.y,
+            cutLine.end.x, cutLine.end.y
+        );
+
+        // 根据角度调整渐变
+        const gradientOffset = Math.abs(Math.sin(angle)) * 0.3;
+        leftGradient.addColorStop(0, `rgba(0, 0, 0, 0)`);
+        leftGradient.addColorStop(0.5 + gradientOffset, `rgba(0, 0, 0, 0.3)`);
+        leftGradient.addColorStop(1, `rgba(0, 0, 0, 0.8)`);
+
+        this.effectSystem.leftCtx.fillStyle = leftGradient;
+        this.effectSystem.leftCtx.fillRect(0, 0, this.effectSystem.leftCanvas.width, this.effectSystem.leftCanvas.height);
+        this.effectSystem.leftCtx.restore();
+
+        // 为右侧Canvas创建透明渐变（切分线左侧透明）
+        this.effectSystem.rightCtx.save();
+        this.effectSystem.rightCtx.globalCompositeOperation = 'destination-out';
+
+        const rightGradient = this.effectSystem.rightCtx.createLinearGradient(
+            cutLine.start.x, cutLine.start.y,
+            cutLine.end.x, cutLine.end.y
+        );
+
+        // 根据角度调整渐变
+        rightGradient.addColorStop(0, `rgba(0, 0, 0, 0.8)`);
+        rightGradient.addColorStop(0.5 - gradientOffset, `rgba(0, 0, 0, 0.3)`);
+        rightGradient.addColorStop(1, `rgba(0, 0, 0, 0)`);
+
+        this.effectSystem.rightCtx.fillStyle = rightGradient;
+        this.effectSystem.rightCtx.fillRect(0, 0, this.effectSystem.rightCanvas.width, this.effectSystem.rightCanvas.height);
+        this.effectSystem.rightCtx.restore();
+    }
+
+    /**
+     * 使用已记录的分组信息更新Canvas裁剪区域
+     * 简化版本：根据斜率填充不需要的那半为透明
+     * @param {number} separationProgress - 分离进度 (0-1)
+     */
+    updateAnimationStep(separationProgress) {
+        if (!this.effectSystem.cutLine || !this.effectSystem.leftCtx || !this.effectSystem.rightCtx) {
+            return;
+        }
+
+        const cutLine = this.effectSystem.cutLine;
+        const separationDistance = separationProgress * this.effectSystem.maxSeparation;
+
+        // 计算法线方向
+        const lineVecX = cutLine.end.x - cutLine.start.x;
+        const lineVecY = cutLine.end.y - cutLine.start.y;
+        const lineLength = Math.sqrt(lineVecX * lineVecX + lineVecY * lineVecY);
+        const normalX = -lineVecY / lineLength;
+        const normalY = lineVecX / lineLength;
+
+        // 清除两个Canvas
+        this.effectSystem.leftCtx.clearRect(0, 0, this.effectSystem.leftCanvas.width, this.effectSystem.leftCanvas.height);
+        this.effectSystem.rightCtx.clearRect(0, 0, this.effectSystem.rightCanvas.width, this.effectSystem.rightCanvas.height);
+
+        // 简化版本：根据斜率创建透明遮罩
+        this.createSimpleTransparencyMask(this.effectSystem.leftCtx, cutLine, normalX, normalY, separationDistance, true);
+        this.createSimpleTransparencyMask(this.effectSystem.rightCtx, cutLine, normalX, normalY, separationDistance, false);
+
+        // 保存分离距离用于后续渲染
+        this.effectSystem.separationDistance = separationDistance;
+    }
+
+    /**
+     * 创建简单的透明遮罩
+     * @param {CanvasRenderingContext2D} ctx - Canvas上下文
+     * @param {Object} cutLine - 切分线
+     * @param {number} normalX - 法线X分量
+     * @param {number} normalY - 法线Y分量
+     * @param {number} separationDistance - 分离距离
+     * @param {boolean} isLeft - 是否为左侧Canvas
+     */
+    createSimpleTransparencyMask(ctx, cutLine, normalX, normalY, separationDistance, isLeft) {
+        ctx.save();
+
+        // 创建透明遮罩
+        ctx.globalCompositeOperation = 'destination-out';
+
+        // 根据斜率创建半透明遮罩
+        const gradient = ctx.createLinearGradient(
+            cutLine.start.x, cutLine.start.y,
+            cutLine.end.x, cutLine.end.y
+        );
+
+        // 根据分离进度调整透明度
+        const alpha = Math.min(separationDistance / this.effectSystem.maxSeparation, 1);
+
+        if (isLeft) {
+            // 左侧Canvas：切分线右侧透明
+            gradient.addColorStop(0, `rgba(0, 0, 0, 0)`);
+            gradient.addColorStop(0.5, `rgba(0, 0, 0, ${alpha * 0.5})`);
+            gradient.addColorStop(1, `rgba(0, 0, 0, ${alpha})`);
+        } else {
+            // 右侧Canvas：切分线左侧透明
+            gradient.addColorStop(0, `rgba(0, 0, 0, ${alpha})`);
+            gradient.addColorStop(0.5, `rgba(0, 0, 0, ${alpha * 0.5})`);
+            gradient.addColorStop(1, `rgba(0, 0, 0, 0)`);
+        }
+
+        ctx.fillStyle = gradient;
+
+        // 绘制遮罩区域
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(ctx.canvas.width, 0);
+        ctx.lineTo(ctx.canvas.width, ctx.canvas.height);
+        ctx.lineTo(0, ctx.canvas.height);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+    /**
+     * 更新Canvas裁剪区域
+     * @param {number} separationProgress - 分离进度 (0-1)
+     */
+    updateCanvasClipping(separationProgress) {
+        if (!this.effectSystem.cutLine || !this.effectSystem.leftCtx || !this.effectSystem.rightCtx) {
+            return;
+        }
+
+        const cutLine = this.effectSystem.cutLine;
+        const separationDistance = separationProgress * this.effectSystem.maxSeparation;
+
+        // 计算法线方向
+        const lineVecX = cutLine.end.x - cutLine.start.x;
+        const lineVecY = cutLine.end.y - cutLine.start.y;
+        const lineLength = Math.sqrt(lineVecX * lineVecX + lineVecY * lineVecY);
+        const normalX = -lineVecY / lineLength;
+        const normalY = lineVecX / lineLength;
+
+        // 清除两个Canvas
+        this.effectSystem.leftCtx.clearRect(0, 0, this.effectSystem.leftCanvas.width, this.effectSystem.leftCanvas.height);
+        this.effectSystem.rightCtx.clearRect(0, 0, this.effectSystem.rightCanvas.width, this.effectSystem.rightCanvas.height);
+
+        // 设置左侧Canvas裁剪区域（天组）
+        this.effectSystem.leftCtx.save();
+        this.effectSystem.leftCtx.beginPath();
+        this.effectSystem.leftCtx.moveTo(0, 0);
+        this.effectSystem.leftCtx.lineTo(this.effectSystem.leftCanvas.width, 0);
+        this.effectSystem.leftCtx.lineTo(this.effectSystem.leftCanvas.width, this.effectSystem.leftCanvas.height);
+        this.effectSystem.leftCtx.lineTo(0, this.effectSystem.leftCanvas.height);
+
+        // 创建切分路径
+        this.effectSystem.leftCtx.moveTo(cutLine.start.x + normalX * separationDistance, cutLine.start.y + normalY * separationDistance);
+        for (let t = 0; t <= 1; t += 0.1) {
+            const x = cutLine.start.x + (cutLine.end.x - cutLine.start.x) * t;
+            const y = cutLine.start.y + (cutLine.end.y - cutLine.start.y) * t;
+            this.effectSystem.leftCtx.lineTo(x + normalX * separationDistance, y + normalY * separationDistance);
+        }
+        this.effectSystem.leftCtx.closePath();
+        this.effectSystem.leftCtx.clip();
+
+        // 设置右侧Canvas裁剪区域（地组）
+        this.effectSystem.rightCtx.save();
+        this.effectSystem.rightCtx.beginPath();
+        this.effectSystem.rightCtx.moveTo(0, 0);
+        this.effectSystem.rightCtx.lineTo(this.effectSystem.rightCanvas.width, 0);
+        this.effectSystem.rightCtx.lineTo(this.effectSystem.rightCanvas.width, this.effectSystem.rightCanvas.height);
+        this.effectSystem.rightCtx.lineTo(0, this.effectSystem.rightCanvas.height);
+
+        // 创建切分路径
+        this.effectSystem.rightCtx.moveTo(cutLine.start.x - normalX * separationDistance, cutLine.start.y - normalY * separationDistance);
+        for (let t = 0; t <= 1; t += 0.1) {
+            const x = cutLine.start.x + (cutLine.end.x - cutLine.start.x) * t;
+            const y = cutLine.start.y + (cutLine.end.y - cutLine.start.y) * t;
+            this.effectSystem.rightCtx.lineTo(x - normalX * separationDistance, y - normalY * separationDistance);
+        }
+        this.effectSystem.rightCtx.closePath();
+        this.effectSystem.rightCtx.clip();
+
+        // 保存分离距离用于后续渲染
+        this.effectSystem.separationDistance = separationDistance;
+    }
+
+    /**
+     * 渲染到多Canvas系统
+     * @param {CanvasRenderingContext2D} sourceCtx - 源Canvas上下文
+     */
+    renderToMultiCanvas(sourceCtx) {
+        if (!this.effectSystem.canvi || !this.effectSystem.leftCtx || !this.effectSystem.rightCtx) {
+            return;
+        }
+
+        // 获取主Canvas
+        const mainCanvas = this.engine.getCanvas();
+
+        // 确保多Canvas容器在最上层
+        this.effectSystem.canvi.style.zIndex = '20';
+
+        // 清除两个Canvas
+        this.effectSystem.leftCtx.clearRect(0, 0, this.effectSystem.leftCanvas.width, this.effectSystem.leftCanvas.height);
+        this.effectSystem.rightCtx.clearRect(0, 0, this.effectSystem.rightCanvas.width, this.effectSystem.rightCanvas.height);
+
+        // 绘制背景到两个Canvas
+        this.effectSystem.leftCtx.fillStyle = '#228B22';
+        this.effectSystem.leftCtx.fillRect(0, 0, this.effectSystem.leftCanvas.width, this.effectSystem.leftCanvas.height);
+        this.effectSystem.rightCtx.fillStyle = '#228B22';
+        this.effectSystem.rightCtx.fillRect(0, 0, this.effectSystem.rightCanvas.width, this.effectSystem.rightCanvas.height);
+
+        // 绘制蓍草到两个Canvas（根据切分线位置）
+        this.stalks.forEach(stalk => {
+            if (stalk.visible || this.divided || this.showDots) {
+                // 根据蓍草所在区域选择对应的Canvas
+                const distance = this.pointToLineSignedDistance(
+                    stalk.x, stalk.y,
+                    this.effectSystem.cutLine.start.x, this.effectSystem.cutLine.start.y,
+                    this.effectSystem.cutLine.end.x, this.effectSystem.cutLine.end.y
+                );
+
+                const ctx = distance > 0 ? this.effectSystem.rightCtx : this.effectSystem.leftCtx;
+
+                // 设置颜色（特效期间使用默认颜色，特效完成后使用分组颜色）
+                if (this.divided && stalk.group) {
+                    ctx.fillStyle = stalk.group === '天' ? '#FFD700' :
+                        stalk.group === '地' ? '#FF6347' : stalk.color;
+                } else {
+                    // 特效期间使用默认颜色
+                    ctx.fillStyle = stalk.color;
+                }
+
+                // 绘制蓍草
+                ctx.beginPath();
+                ctx.arc(stalk.x, stalk.y, stalk.radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.strokeStyle = '#8B4513';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+        });
+
+        // 应用裁剪
+        this.updateCanvasClipping(this.effectSystem.animationProgress);
+
+        // 添加调试信息
+        if (Math.random() < 0.01) { // 随机打印1%的渲染信息
+            console.log('多Canvas渲染信息:', {
+                mainCanvasSize: { width: mainCanvas.width, height: mainCanvas.height },
+                leftCanvasSize: { width: this.effectSystem.leftCanvas.width, height: this.effectSystem.leftCanvas.height },
+                rightCanvasSize: { width: this.effectSystem.rightCanvas.width, height: this.effectSystem.rightCanvas.height },
+                animationProgress: this.effectSystem.animationProgress
+            });
+        }
+    }
+
+    /**
+     * 清理多Canvas系统
+     */
+    cleanupMultiCanvas() {
+        if (this.effectSystem.canvi) {
+            // 不删除Canvas，而是隐藏它们并重置内容
+            this.effectSystem.canvi.style.zIndex = '5';
+            
+            // 清除Canvas内容但保留可见性，重新复制主画布内容
+            if (this.effectSystem.leftCtx && this.effectSystem.leftCanvas) {
+                const displayWidth = this.effectSystem.leftCanvas.width;
+                const displayHeight = this.effectSystem.leftCanvas.height;
+                this.effectSystem.leftCtx.clearRect(0, 0, displayWidth, displayHeight);
+                
+                // 重新复制主画布内容
+                const mainCanvas = this.engine.getCanvas();
+                this.effectSystem.leftCtx.drawImage(mainCanvas, 0, 0);
+                
+                // 添加半透明遮罩和标签
+                this.effectSystem.leftCtx.fillStyle = 'rgba(255, 215, 0, 0.2)';
+                this.effectSystem.leftCtx.fillRect(0, 0, displayWidth, displayHeight);
+                this.effectSystem.leftCtx.fillStyle = '#FFD700';
+                this.effectSystem.leftCtx.font = 'bold 24px "Microsoft YaHei", sans-serif';
+                this.effectSystem.leftCtx.textAlign = 'center';
+                this.effectSystem.leftCtx.fillText('天组', displayWidth / 2, displayHeight / 2);
+            }
+            
+            if (this.effectSystem.rightCtx && this.effectSystem.rightCanvas) {
+                const displayWidth = this.effectSystem.rightCanvas.width;
+                const displayHeight = this.effectSystem.rightCanvas.height;
+                this.effectSystem.rightCtx.clearRect(0, 0, displayWidth, displayHeight);
+                
+                // 重新复制主画布内容
+                const mainCanvas = this.engine.getCanvas();
+                this.effectSystem.rightCtx.drawImage(mainCanvas, 0, 0);
+                
+                // 添加半透明遮罩和标签
+                this.effectSystem.rightCtx.fillStyle = 'rgba(255, 99, 71, 0.2)';
+                this.effectSystem.rightCtx.fillRect(0, 0, displayWidth, displayHeight);
+                this.effectSystem.rightCtx.fillStyle = '#FF6347';
+                this.effectSystem.rightCtx.font = 'bold 24px "Microsoft YaHei", sans-serif';
+                this.effectSystem.rightCtx.textAlign = 'center';
+                this.effectSystem.rightCtx.fillText('地组', displayWidth / 2, displayHeight / 2);
+            }
+            
+            // 重置特效状态
+            this.effectSystem.isActive = false;
+            this.effectSystem.currentEffect = null;
+            this.effectSystem.particles = [];
+            
+            console.log('多Canvas系统已重置，保持可见状态');
+        }
+    }
+
+    /**
+     * 创建切分粒子效果
+     * @param {Object} cutLine - 切分线对象
+     */
+    createCutParticles(cutLine) {
+        const particleCount = 30;
+        const lineLength = Math.sqrt(
+            Math.pow(cutLine.end.x - cutLine.start.x, 2) +
+            Math.pow(cutLine.end.y - cutLine.start.y, 2)
+        );
+
+        for (let i = 0; i < particleCount; i++) {
+            const t = i / (particleCount - 1);
+            const x = cutLine.start.x + (cutLine.end.x - cutLine.start.x) * t;
+            const y = cutLine.start.y + (cutLine.end.y - cutLine.start.y) * t;
+
+            // 在切分线两侧创建粒子
+            for (let side = -1; side <= 1; side += 2) {
+                this.effectSystem.particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 4,
+                    vy: (Math.random() - 0.5) * 4,
+                    life: 1.0,
+                    decay: 0.02,
+                    size: Math.random() * 3 + 1,
+                    color: side > 0 ? '#FFD700' : '#FF6347', // 天组金色，地组红色
+                    side: side
+                });
+            }
+        }
+    }
+
+    /**
+     * 更新特效动画
+     * @param {number} deltaTime - 距离上一帧的时间（毫秒）
+     */
+    updateEffects(deltaTime) {
+        if (!this.effectSystem.isActive) return;
+
+        const currentTime = performance.now();
+        const elapsed = currentTime - this.effectSystem.startTime;
+        this.effectSystem.animationProgress = Math.min(elapsed / this.effectSystem.animationDuration, 1);
+
+        // 更新Canvas裁剪和分离效果
+        if (this.effectSystem.cutLine) {
+            // 使用已记录的分组信息更新裁剪
+            this.updateAnimationStep(this.effectSystem.animationProgress);
+
+            // 计算分离距离
+            const separationProgress = this.effectSystem.animationProgress;
+            const separationDistance = separationProgress * this.effectSystem.maxSeparation;
+
+            // 更新两个Canvas的位置
+            if (this.effectSystem.leftCanvas && this.effectSystem.rightCanvas) {
+                const lineVecX = this.effectSystem.cutLine.end.x - this.effectSystem.cutLine.start.x;
+                const lineVecY = this.effectSystem.cutLine.end.y - this.effectSystem.cutLine.start.y;
+                const lineLength = Math.sqrt(lineVecX * lineVecX + lineVecY * lineVecY);
+                const normalX = -lineVecY / lineLength;
+                const normalY = lineVecX / lineLength;
+
+                // 左侧Canvas向法线方向移动
+                const leftOffsetX = normalX * separationDistance;
+                const leftOffsetY = normalY * separationDistance;
+                this.effectSystem.leftCanvas.style.transform = `translate(${leftOffsetX}px, ${leftOffsetY}px)`;
+
+                // 右侧Canvas向反法线方向移动
+                const rightOffsetX = -normalX * separationDistance;
+                const rightOffsetY = -normalY * separationDistance;
+                this.effectSystem.rightCanvas.style.transform = `translate(${rightOffsetX}px, ${rightOffsetY}px)`;
+            }
+        }
+
+        // 更新粒子
+        this.effectSystem.particles = this.effectSystem.particles.filter(particle => {
+            particle.x += particle.vx;
+            particle.y += particle.vy;
+            particle.life -= particle.decay;
+            particle.vy += 0.1; // 重力效果
+            return particle.life > 0;
+        });
+
+        // 检查动画是否完成
+        if (this.effectSystem.animationProgress >= 1) {
+            this.completeEffect();
+        }
+    }
+
+    /**
+     * 完成特效动画
+     */
+    completeEffect() {
+        this.effectSystem.isActive = false;
+        this.effectSystem.currentEffect = null;
+        this.effectSystem.particles = [];
+        
+        // 确保Canvas保持可见状态
+        if (this.effectSystem.canvi) {
+            this.effectSystem.canvi.style.zIndex = '5';
+            
+            // 重新绘制初始状态，复制主画布内容
+            if (this.effectSystem.leftCtx && this.effectSystem.leftCanvas) {
+                const displayWidth = this.effectSystem.leftCanvas.width;
+                const displayHeight = this.effectSystem.leftCanvas.height;
+                this.effectSystem.leftCtx.clearRect(0, 0, displayWidth, displayHeight);
+                
+                // 重新复制主画布内容
+                const mainCanvas = this.engine.getCanvas();
+                this.effectSystem.leftCtx.drawImage(mainCanvas, 0, 0);
+                
+                // 添加半透明遮罩和标签
+                this.effectSystem.leftCtx.fillStyle = 'rgba(255, 215, 0, 0.2)';
+                this.effectSystem.leftCtx.fillRect(0, 0, displayWidth, displayHeight);
+                this.effectSystem.leftCtx.fillStyle = '#FFD700';
+                this.effectSystem.leftCtx.font = 'bold 24px "Microsoft YaHei", sans-serif';
+                this.effectSystem.leftCtx.textAlign = 'center';
+                this.effectSystem.leftCtx.fillText('天组', displayWidth / 2, displayHeight / 2);
+            }
+            
+            if (this.effectSystem.rightCtx && this.effectSystem.rightCanvas) {
+                const displayWidth = this.effectSystem.rightCanvas.width;
+                const displayHeight = this.effectSystem.rightCanvas.height;
+                this.effectSystem.rightCtx.clearRect(0, 0, displayWidth, displayHeight);
+                
+                // 重新复制主画布内容
+                const mainCanvas = this.engine.getCanvas();
+                this.effectSystem.rightCtx.drawImage(mainCanvas, 0, 0);
+                
+                // 添加半透明遮罩和标签
+                this.effectSystem.rightCtx.fillStyle = 'rgba(255, 99, 71, 0.2)';
+                this.effectSystem.rightCtx.fillRect(0, 0, displayWidth, displayHeight);
+                this.effectSystem.rightCtx.fillStyle = '#FF6347';
+                this.effectSystem.rightCtx.font = 'bold 24px "Microsoft YaHei", sans-serif';
+                this.effectSystem.rightCtx.textAlign = 'center';
+                this.effectSystem.rightCtx.fillText('地组', displayWidth / 2, displayHeight / 2);
+            }
+            
+            console.log('特效动画完成，Canvas恢复到初始可见状态');
+        }
+    }
+
+    doStalksAlgorithm() {
+
+        // 记录日志（包含斜率信息和爻信息）
+        const currentYaoNumber = this.yaos.length + 1; // 当前是第几爻
+
+        // 转换为传统爻名
+        const traditionalYaoNames = ['', '初', '二', '三', '四', '五', '上'];
+        const yaoName = traditionalYaoNames[currentYaoNumber];
+
+        // 执行蓍草法计算以获取余数信息
+        const result = StalksAlgorithm.performChangeManual(
+            this.currentStalks,
+            this.currentChange,
+            this.yaos.length,
+            this.changeResults,
+            this.leftGroup,
+            this.rightGroup,
+            (message) => { } // 暂时不记录日志，避免重复
+        );
+
+        // 构造新的日志格式
+        let startStalks = this.currentStalks;
+        // 如果是第一变且currentStalks不是49，则使用49（根据蓍草法规则）
+        if (this.currentChange === 0 && startStalks !== 49) {
+            startStalks = 49;
+        }
+        let logMessage = `${yaoName}爻${this.currentChange + 1}变：起有${startStalks}，`;
+
+        if (result && result.success) {
+            // 左边信息：左23挂1后揲四余2
+            const leftRemainder = result.leftRemainder || 0;
+            logMessage += `左${this.leftGroup.length}挂1后揲四余${leftRemainder}，`;
+
+            // 右边信息：右26揲四余2
+            const rightRemainder = result.rightRemainder || 0;
+            logMessage += `右${this.rightGroup.length}揲四余${rightRemainder}，`;
+
+            // 左右合挂：挂一1根 + 左右余数之和
+            const totalHang = 1 + result.totalRemainder;
+            logMessage += `左右合挂${totalHang}，`;
+
+            // 本爻合挂总数（累加当前变和之前所有变的挂数）
+            const currentHang = 1 + result.totalRemainder; // 当前变的挂数
+            const previousHangs = this.changeResults.reduce((sum, r) => sum + (1 + r.totalRemainder), 0); // 之前所有变的挂数
+            const totalAsideStalks = currentHang + previousHangs; // 总挂数
+            logMessage += `本爻合挂${totalAsideStalks}，`;
+
+            // Next值：如果是第三变，显示得爻之数，否则显示剩余的蓍草数量
+            if (this.currentChange === 2) {
+                // 第三变，计算爻值
+                let yaoValue;
+                let yaoType;
+                if (result.remainingStalks === 36) {
+                    yaoValue = 9; // 老阳 ⚊○
+                    yaoType = "老阳(⚊○)";
+                } else if (result.remainingStalks === 32) {
+                    yaoValue = 8; // 少阴 ⚋
+                    yaoType = "少阴(⚋)";
+                } else if (result.remainingStalks === 28) {
+                    yaoValue = 7; // 少阳 ⚊
+                    yaoType = "少阳(⚊)";
+                } else if (result.remainingStalks === 24) {
+                    yaoValue = 6; // 老阴 ⚋○
+                    yaoType = "老阴(⚋○)";
+                } else {
+                    yaoValue = result.remainingStalks; // 异常情况
+                    yaoType = "异常";
+                }
+                logMessage += `得${yaoType}`;
+            } else {
+                // 其他变，显示剩余的蓍草数量
+                logMessage += `Next=${result.remainingStalks}`;
+            }
+        } else {
+            // 如果计算失败，使用简化格式
+            logMessage += `左${this.leftGroup.length}右${this.rightGroup.length}，切分完成`;
+        }
+
+        this.addLog(logMessage);
+
+        // 执行挂一步骤
+        this.asideStalks = 1;
+        this.asideStalksType = 'hanging';
+
+        // 更新界面显示
+        this.updateDisplay();
+
+        // 立即执行蓍草法算法并进入下一步
+        if (this.performChange()) {
+            this.currentStep++;
+            this.currentChange++;
+
+            if (this.currentChange >= 3) {
+                const yaoValue = this.calculateYaoValue();
+                this.yaos.push(yaoValue);
+
+                this.currentChange = 0;
+                this.changeResults = [];
+                this.asideStalks = 0;
+                this.asideStalksType = '';
+
+                if (this.yaos.length >= 6) {
+                    this.showResult();
+                    this.addLog("手动占卜完成");
+                } else {
+                    this.divided = false;
+                    this.initStalks();
+                    this.updateDisplay();
+                }
+            } else {
+                this.divided = false;
+                this.initStalks();
+                this.updateDisplay();
+            }
+        } else {
+            this.addLog("占卜中断：蓍草数量不足");
+            this.divided = false;
+            this.initStalks();
+            this.updateDisplay();
+        }
+    }
+
+    /**
+     * 渲染特效
+     * @param {CanvasRenderingContext2D} ctx - Canvas上下文
+     */
+    renderEffects(ctx) {
+        if (!this.effectSystem.isActive) return;
+
+        const progress = this.effectSystem.animationProgress;
+
+        // 如果多Canvas系统存在，渲染到多Canvas
+        if (this.effectSystem.canvi) {
+            this.renderToMultiCanvas(ctx);
+        }
+        // 渲染粒子效果（始终在主Canvas上渲染）
+        this.renderParticles(ctx);
+    }
+
+    /**
+     * 渲染粒子效果
+     * @param {CanvasRenderingContext2D} ctx - Canvas上下文
+     */
+    renderParticles(ctx) {
+        this.effectSystem.particles.forEach(particle => {
+            ctx.save();
+            ctx.globalAlpha = particle.life;
+            ctx.fillStyle = particle.color;
+
+            ctx.beginPath();
+            ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        });
+    }
+
+    /**
+     * 更新场景
+     * @param {number} deltaTime - 距离上一帧的时间（毫秒）
+     */
+    update(deltaTime) {
+        // 更新特效动画
+        this.updateEffects(deltaTime);
+    }
+
     initStalks() {
         this.stalks = [];
         const stalkCount = 49;
-        const width = this.engine.getCanvas().width;
-        const height = this.engine.getCanvas().height;
+
+        // 获取画布的实际显示尺寸（CSS像素）
+        const canvas = this.engine.getCanvas();
+        const rect = canvas.getBoundingClientRect();
+        const displayWidth = rect.width;
+        const displayHeight = rect.height;
+
+        // 获取画布的实际绘制尺寸（考虑设备像素比）
+        const dpr = window.devicePixelRatio || 1;
+        const actualWidth = canvas.width;
+        const actualHeight = canvas.height;
+
         const padding = 30;
 
         for (let i = 0; i < stalkCount; i++) {
-            const x = padding + Math.random() * (width - 2 * padding);
-            const y = padding + Math.random() * (height - 2 * padding);
+            // 使用CSS像素坐标来定位蓍草，确保显示正确
+            const x = padding + Math.random() * (displayWidth - 2 * padding);
+            const y = padding + Math.random() * (displayHeight - 2 * padding);
 
             this.stalks.push({
                 x: x,
@@ -142,6 +1054,13 @@ class GameScene extends Scene {
                 visible: true
             });
         }
+
+        // 添加调试信息
+        console.log('蓍草初始化信息:', {
+            stalkCount: stalkCount,
+            canvasSize: { display: { width: displayWidth, height: displayHeight }, actual: { width: actualWidth, height: actualHeight } },
+            padding: padding
+        });
     }
 
     createUI() {
@@ -270,16 +1189,10 @@ class GameScene extends Scene {
             this.settingsButton.onClick();
         }
     }
-
-    performDivision() {
+    createCutLine() {
         // 计算划拉线的起点和终点
         const startPoint = this.trail[0];
         const endPoint = this.trail[this.trail.length - 1];
-
-        // 重置所有蓍草的分组
-        this.stalks.forEach(stalk => {
-            stalk.group = null;
-        });
 
         // 计算划拉线的斜率
         const lineVecX = endPoint.x - startPoint.x;
@@ -292,9 +1205,20 @@ class GameScene extends Scene {
             slope = lineVecY / lineVecX;
         }
 
-        // 获取画布中心点
-        const centerX = this.engine.getCanvas().width / 2;
-        const centerY = this.engine.getCanvas().height / 2;
+        // 获取画布的实际显示尺寸（CSS像素）
+        const canvas = this.engine.getCanvas();
+        const rect = canvas.getBoundingClientRect();
+        const displayWidth = rect.width;
+        const displayHeight = rect.height;
+
+        // 获取画布的实际绘制尺寸（考虑设备像素比）
+        const dpr = window.devicePixelRatio || 1;
+        const actualWidth = canvas.width;
+        const actualHeight = canvas.height;
+
+        // 计算中心点（使用CSS像素坐标，确保特效线正确经过中心）
+        const centerX = displayWidth / 2;
+        const centerY = displayHeight / 2;
 
         // 根据斜率创建通过画布中心的切分线
         let cutLine;
@@ -302,44 +1226,58 @@ class GameScene extends Scene {
             // 垂直线
             cutLine = {
                 start: { x: centerX, y: 0 },
-                end: { x: centerX, y: this.engine.getCanvas().height }
+                end: { x: centerX, y: displayHeight }
             };
         } else if (slope === 0) {
             // 水平线
             cutLine = {
                 start: { x: 0, y: centerY },
-                end: { x: this.engine.getCanvas().width, y: centerY }
+                end: { x: displayWidth, y: centerY }
             };
         } else {
             // 根据斜率计算通过中心点的直线
             // 使用斜截式 y = slope * x + b，代入中心点求截距
             const intercept = centerY - slope * centerX;
-            
+
             // 计算直线与画布边界的交点
             let startX, startY, endX, endY;
-            
+
             if (Math.abs(slope) < 1) {
                 // 斜率较小，与左右边界相交
                 startX = 0;
                 startY = slope * startX + intercept;
-                endX = this.engine.getCanvas().width;
+                endX = displayWidth;
                 endY = slope * endX + intercept;
             } else {
                 // 斜率较大，与上下边界相交
                 startY = 0;
                 startX = (startY - intercept) / slope;
-                endY = this.engine.getCanvas().height;
+                endY = displayHeight;
                 endX = (endY - intercept) / slope;
             }
-            
+
             cutLine = {
                 start: { x: startX, y: startY },
                 end: { x: endX, y: endY }
             };
         }
+        this.effectSystem.divisionLine = cutLine;
+        this.effectSystem.slope = slope;
+        return cutLine;
+    }
 
-        // 格式化斜率显示
-        const slopeDisplay = slope === Infinity ? '垂直' : slope.toFixed(3);
+    performDivision() {
+        let cutLine = this.createCutLine();
+        this.groupByLine(cutLine);
+        this.startCutEffect(cutLine);
+        this.doStalksAlgorithm();
+    }
+
+    /**
+     * 在特效之前执行分组逻辑
+     * @param {Object} cutLine - 切分线对象
+     */
+    groupByLine(cutLine) {
 
         // 根据切分线划分蓍草
         this.stalks.forEach(stalk => {
@@ -348,7 +1286,6 @@ class GameScene extends Scene {
                 cutLine.start.x, cutLine.start.y,
                 cutLine.end.x, cutLine.end.y
             );
-
             if (distance > 0) {
                 stalk.group = '地';
             } else {
@@ -363,132 +1300,7 @@ class GameScene extends Scene {
         // 标记为已分割
         this.divided = true;
 
-        // 显示所有蓍草
-        this.stalks.forEach(stalk => {
-            stalk.visible = true;
-        });
-
-        // 记录日志（包含斜率信息和爻信息）
-        const currentYaoNumber = this.yaos.length + 1; // 当前是第几爻
-        
-        // 转换为传统爻名
-        const traditionalYaoNames = ['', '初', '二', '三', '四', '五', '上'];
-        const yaoName = traditionalYaoNames[currentYaoNumber];
-        
-        // 执行蓍草法计算以获取余数信息
-        const result = StalksAlgorithm.performChangeManual(
-            this.currentStalks,
-            this.currentChange,
-            this.yaos.length,
-            this.changeResults,
-            this.leftGroup,
-            this.rightGroup,
-            (message) => {} // 暂时不记录日志，避免重复
-        );
-        
-        // 构造新的日志格式
-        let startStalks = this.currentStalks;
-        // 如果是第一变且currentStalks不是49，则使用49（根据蓍草法规则）
-        if (this.currentChange === 0 && startStalks !== 49) {
-            startStalks = 49;
-        }
-        let logMessage = `${yaoName}爻${this.currentChange + 1}变：起有${startStalks}，`;
-        
-        if (result && result.success) {
-            // 左边信息：左23挂1后揲四余2
-            const leftRemainder = result.leftRemainder || 0;
-            logMessage += `左${this.leftGroup.length}挂1后揲四余${leftRemainder}，`;
-            
-            // 右边信息：右26揲四余2
-            const rightRemainder = result.rightRemainder || 0;
-            logMessage += `右${this.rightGroup.length}揲四余${rightRemainder}，`;
-            
-            // 左右合挂：挂一1根 + 左右余数之和
-            const totalHang = 1 + result.totalRemainder;
-            logMessage += `左右合挂${totalHang}，`;
-            
-            // 本爻合挂总数（累加当前变和之前所有变的挂数）
-            const currentHang = 1 + result.totalRemainder; // 当前变的挂数
-            const previousHangs = this.changeResults.reduce((sum, r) => sum + (1 + r.totalRemainder), 0); // 之前所有变的挂数
-            const totalAsideStalks = currentHang + previousHangs; // 总挂数
-            logMessage += `本爻合挂${totalAsideStalks}，`;
-            
-            // Next值：如果是第三变，显示得爻之数，否则显示剩余的蓍草数量
-            if (this.currentChange === 2) {
-                // 第三变，计算爻值
-                let yaoValue;
-                let yaoType;
-                if (result.remainingStalks === 36) {
-                    yaoValue = 9; // 老阳 ⚊○
-                    yaoType = "老阳(⚊○)";
-                } else if (result.remainingStalks === 32) {
-                    yaoValue = 8; // 少阴 ⚋
-                    yaoType = "少阴(⚋)";
-                } else if (result.remainingStalks === 28) {
-                    yaoValue = 7; // 少阳 ⚊
-                    yaoType = "少阳(⚊)";
-                } else if (result.remainingStalks === 24) {
-                    yaoValue = 6; // 老阴 ⚋○
-                    yaoType = "老阴(⚋○)";
-                } else {
-                    yaoValue = result.remainingStalks; // 异常情况
-                    yaoType = "异常";
-                }
-                logMessage += `得${yaoType}`;
-            } else {
-                // 其他变，显示剩余的蓍草数量
-                logMessage += `Next=${result.remainingStalks}`;
-            }
-        } else {
-            // 如果计算失败，使用简化格式
-            logMessage += `左${this.leftGroup.length}右${this.rightGroup.length}，斜率${slopeDisplay}，计算失败`;
-        }
-        
-        this.addLog(logMessage);
-
-        // 执行挂一步骤
-        this.asideStalks = 1;
-        this.asideStalksType = 'hanging';
-
-        // 更新界面显示
-        this.updateDisplay();
-
-        // 立即执行蓍草法算法并进入下一步
-        if (this.performChange()) {
-            this.currentStep++;
-            this.currentChange++;
-
-            if (this.currentChange >= 3) {
-                const yaoValue = this.calculateYaoValue();
-                this.yaos.push(yaoValue);
-
-                this.currentChange = 0;
-                this.changeResults = [];
-                this.asideStalks = 0;
-                this.asideStalksType = '';
-
-                if (this.yaos.length >= 6) {
-                    this.showResult();
-                    this.addLog("手动占卜完成");
-                } else {
-                    this.divided = false;
-                    this.initStalks();
-                    this.updateDisplay();
-                }
-            } else {
-                this.divided = false;
-                this.initStalks();
-                this.updateDisplay();
-            }
-        } else {
-            this.addLog("占卜中断：蓍草数量不足");
-            this.divided = false;
-            this.initStalks();
-            this.updateDisplay();
-        }
     }
-
-
     pointToLineSignedDistance(px, py, x1, y1, x2, y2) {
         const lineVecX = x2 - x1;
         const lineVecY = y2 - y1;
@@ -500,6 +1312,39 @@ class GameScene extends Scene {
 
         const crossProduct = (px - x1) * lineVecY - (py - y1) * lineVecX;
         return crossProduct / lineLength;
+    }
+
+    /**
+     * 验证法线方向计算
+     * @param {Object} cutLine - 切分线对象
+     * @returns {Object} 法线方向信息
+     */
+    validateNormalDirection(cutLine) {
+        const lineVecX = cutLine.end.x - cutLine.start.x;
+        const lineVecY = cutLine.end.y - cutLine.start.y;
+        const lineLength = Math.sqrt(lineVecX * lineVecX + lineVecY * lineVecY);
+
+        // 法线方向（垂直于切分线）
+        const normalX = -lineVecY / lineLength;
+        const normalY = lineVecX / lineLength;
+
+        // 验证法线方向是否正确（应该与切分线垂直）
+        const dotProduct = lineVecX * normalX + lineVecY * normalY;
+        const normalLength = Math.sqrt(normalX * normalX + normalY * normalY);
+
+        console.log('法线方向验证:', {
+            lineVector: { x: lineVecX, y: lineVecY },
+            normalVector: { x: normalX, y: normalY },
+            dotProduct: dotProduct, // 应该接近0
+            normalLength: normalLength, // 应该接近1
+            isValid: Math.abs(dotProduct) < 0.001 && Math.abs(normalLength - 1) < 0.001
+        });
+
+        return {
+            normalX: normalX,
+            normalY: normalY,
+            isValid: Math.abs(dotProduct) < 0.001 && Math.abs(normalLength - 1) < 0.001
+        };
     }
 
     performChange() {
@@ -528,12 +1373,14 @@ class GameScene extends Scene {
     }
 
     render(ctx, width, height) {
-        // 绘制背景
         ctx.fillStyle = '#228B22';
         ctx.fillRect(0, 0, width, height);
 
         // 绘制蓍草
         this.drawStalks(ctx);
+
+        // 渲染特效
+        this.renderEffects(ctx);
 
         // 绘制进度提示
         this.drawProgress(ctx, width, height);
@@ -550,12 +1397,22 @@ class GameScene extends Scene {
     drawStalks(ctx) {
         let drawnCount = 0;
 
+        // 始终显示蓍草，即使在特效激活期间
         this.stalks.forEach(stalk => {
-            if (stalk.visible || this.divided || this.showDots) {
+            // 在特效期间，蓍草应该被多Canvas系统处理，这里不绘制
+            if (!this.effectSystem.isActive || (stalk.visible || this.divided || this.showDots)) {
                 drawnCount++;
 
-                ctx.fillStyle = stalk.group === '天' ? '#FFD700' :
-                    stalk.group === '地' ? '#FF6347' : stalk.color;
+                // 在特效期间，根据移动位置显示蓍草
+                if (this.effectSystem.isActive && stalk.originalX !== undefined && stalk.originalY !== undefined) {
+                    // 特效期间使用当前位置
+                    ctx.fillStyle = stalk.group === '天' ? '#FFD700' :
+                        stalk.group === '地' ? '#FF6347' : stalk.color;
+                } else {
+                    // 非特效期间使用原始分组颜色
+                    ctx.fillStyle = stalk.group === '天' ? '#FFD700' :
+                        stalk.group === '地' ? '#FF6347' : stalk.color;
+                }
 
                 this.drawStalk(ctx, stalk);
             }
@@ -582,9 +1439,9 @@ class GameScene extends Scene {
             ctx.strokeStyle = '#8B4513';
             ctx.lineWidth = 1;
             ctx.stroke();
-        } else {
-            // 绘制方形蓍草
-            ctx.fillRect(stalk.x - 4, stalk.y - 4, 8, 8);
+        }
+        else {
+            // hide all
         }
     }
 
@@ -804,21 +1661,21 @@ class ResultScene extends Scene {
         // 确保使用传递过来的yaos数组，而不是构造函数中的空数组
         const yaos = this.yaos || [];
         console.log('ResultScene中的yaos数组:', yaos);
-        
+
         if (yaos.length === 0) {
             console.warn('警告：yaos数组为空，无法计算卦象');
             return;
         }
-        
+
         // 如果还没有计算过或者yaos数据有变化，才重新计算
         if (!this.isGuaDataCalculated || this.yaos !== yaos) {
             this.guaData = this.calculateGuaFromYaos(yaos);
             this.isGuaDataCalculated = true;
-            
+
             // 计算变卦
             const changingYaos = StalksAlgorithm.calculateChangingGua(yaos);
             const changingGuaData = this.calculateGuaFromYaos(changingYaos);
-            
+
             // 设置卦象数据到GuaDisplay组件（同时传递本卦和变卦数据）
             if (this.guaDisplay) {
                 this.guaDisplay.setGuaData(
@@ -833,17 +1690,17 @@ class ResultScene extends Scene {
                 );
                 this.guaDisplay.setVisible(true);
             }
-            
+
             // 输出结果到控制台
             console.log(`本卦：${this.guaData.interpretation}`);
             console.log(`卦象：${this.guaData.symbolism}`);
             console.log(`建议：${this.guaData.advice}`);
-            
+
             // 获取变爻信息
             const changingYaoIndices = yaos
                 .map((yao, index) => yao === 9 || yao === 6 ? index + 1 : null)
                 .filter(yao => yao !== null);
-            
+
             if (changingYaoIndices.length > 0 && window.StalksAlgorithm) {
                 const advice = window.StalksAlgorithm.getChangingYaoAdvice(changingYaoIndices);
                 console.log(`变爻提示：${advice}`);
@@ -876,7 +1733,7 @@ class ResultScene extends Scene {
         // 渲染UI元素
         if (this.restartButton) this.restartButton.render(ctx);
         if (this.newGameButton) this.newGameButton.render(ctx);
-        
+
         // 绘制卦象信息（使用缓存的数据，避免重复计算）
         if (this.yaos.length > 0 && this.guaData) {
             // 绘制卦名和解释
@@ -884,26 +1741,26 @@ class ResultScene extends Scene {
             ctx.font = '1rem "Microsoft YaHei", sans-serif';
             ctx.textAlign = 'center';
             ctx.fillText(this.guaData.interpretation, width / 2, height - 180);
-            
+
             // 绘制卦象
             ctx.fillStyle = '#FFD700';
             ctx.font = '0.9rem "Microsoft YaHei", sans-serif';
             ctx.fillText(this.guaData.symbolism, width / 2, height - 150);
-            
+
             // 绘制建议
             ctx.fillStyle = '#90EE90';
             ctx.font = '0.9rem "Microsoft YaHei", sans-serif';
             ctx.fillText('建议：' + this.guaData.advice, width / 2, height - 120);
-            
+
             // 绘制爻辞标题
             ctx.fillStyle = '#FFD700';
             ctx.font = 'bold 0.9rem "Microsoft YaHei", sans-serif';
             ctx.fillText('爻辞：', width / 2, height - 80);
-            
+
             // 绘制六爻爻辞
             ctx.fillStyle = '#fff';
             ctx.font = '0.8rem "Microsoft YaHei", sans-serif';
-            
+
             // 爻辞数组（示例，实际应该从卦象数据中获取）
             const yaoTexts = [
                 `初爻：${this.yaos[0] === 9 || this.yaos[0] === 7 ? '阳' : '阴'}爻`,
@@ -913,7 +1770,7 @@ class ResultScene extends Scene {
                 `五爻：${this.yaos[4] === 9 || this.yaos[4] === 7 ? '阳' : '阴'}爻`,
                 `上爻：${this.yaos[5] === 9 || this.yaos[5] === 7 ? '阳' : '阴'}爻`
             ];
-            
+
             // 绘制每个爻的信息
             for (let i = 0; i < 6; i++) {
                 const y = height - 50 + i * 15;
