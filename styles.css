@@ -1,0 +1,599 @@
+/**
+ * 蓍草占卜游戏样式文件
+ */
+
+/* 全局样式重置 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* 基础样式 */
+body {
+    font-family: 'Microsoft YaHei', sans-serif;
+    background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+    color: #fff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+}
+
+/* 页头样式 */
+header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+h1 {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.subtitle {
+    font-size: 1.2rem;
+    opacity: 0.9;
+}
+
+/* 容器样式 */
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 900px;
+}
+
+/* 游戏容器样式 */
+#game-container {
+    position: relative;
+    width: 100%;
+    height: 500px;
+    margin-bottom: 20px;
+    border: 3px solid #8B4513;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+    background: linear-gradient(to bottom, #2E8B57, #228B22);
+}
+
+#game-canvas {
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+    touch-action: none;
+}
+
+/* 信息面板样式 */
+.info-panel {
+    width: 100%;
+    background: rgba(139, 69, 19, 0.8);
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.info-panel h2 {
+    text-align: center;
+    margin-bottom: 10px;
+    color: #FFD700;
+}
+
+#instructions {
+    line-height: 1.6;
+    margin-bottom: 15px;
+}
+
+#step-info {
+    font-weight: bold;
+    color: #FFD700;
+    margin-top: 15px;
+    text-align: center;
+    min-height: 32px;
+    font-size: 1.1rem;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 5px;
+}
+
+.algorithm-info {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 10px;
+    border-radius: 5px;
+    margin-top: 10px;
+    font-size: 0.9rem;
+}
+
+.algorithm-info h3 {
+    color: #FFD700;
+    margin-bottom: 5px;
+    font-size: 1rem;
+}
+
+/* 手的状态样式 */
+.hand-status {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    margin-top: 10px;
+    padding: 10px;
+    background: rgba(255, 105, 180, 0.1);
+    border-radius: 5px;
+    border: 1px solid rgba(255, 105, 180, 0.3);
+}
+
+.hand-item {
+    text-align: center;
+}
+
+.hand-item .label {
+    font-size: 0.9rem;
+    color: #FFD700;
+    margin-bottom: 5px;
+}
+
+.hand-item .value {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #FF69B4;
+}
+
+/* 控制按钮样式 */
+.controls {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+button {
+    padding: 12px 25px;
+    background: linear-gradient(to bottom, #8B4513, #A0522D);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+    background: linear-gradient(to bottom, #A0522D, #8B4513);
+}
+
+button:active {
+    transform: translateY(1px);
+}
+
+/* 结果样式 */
+#result {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    display: none;
+}
+
+#result h2 {
+    color: #FFD700;
+    margin-bottom: 15px;
+}
+
+#gua-container {
+    display: flex;
+    justify-content: center;
+    margin: 20px 0;
+    flex-direction: column;
+    align-items: center;
+}
+
+.yao {
+    width: 120px;
+    height: 15px;
+    background: #FFD700;
+    margin: 5px;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+}
+
+.broken {
+    background: linear-gradient(to right, #FFD700 45%, transparent 45%, transparent 55%, #FFD700 55%);
+}
+
+.yang {
+    background: #FFD700;
+}
+
+.yang-old {
+    background: #FFD700;
+}
+
+.yin-old {
+    background: #FFD700;
+}
+
+#interpretation {
+    line-height: 1.6;
+    text-align: left;
+    margin-top: 15px;
+}
+
+.gua-name {
+    font-size: 2rem;
+    margin: 10px 0;
+    color: #FFD700;
+    font-weight: bold;
+}
+
+/* 页脚样式 */
+footer {
+    margin-top: 30px;
+    text-align: center;
+    opacity: 0.8;
+    font-size: 0.9rem;
+}
+
+/* 场景样式 */
+.scene {
+    display: none;
+    width: 100%;
+    max-width: 900px;
+}
+
+.scene.active {
+    display: block;
+}
+
+/* 开始场景样式 - 已移至Canvas渲染 */
+/* #start-scene 及其相关样式已删除，避免与Canvas渲染重复 */
+
+/* 设置面板样式 */
+.settings-panel {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 15px;
+    border-radius: 10px;
+    border: 2px solid #FFD700;
+    z-index: 1000;
+    min-width: 200px;
+}
+
+/* 游戏信息面板样式 - HUD样式 */
+.game-info-panel {
+    position: absolute;
+    bottom: 5px;
+    left: 5px;
+    right: 5px;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 5px 8px;
+    border-radius: 3px;
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    z-index: 1000;
+    font-size: 0.8rem;
+    max-height: 60px;
+    overflow: hidden;
+}
+
+.game-info-panel .hand-status {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 0;
+    padding: 2px 0;
+}
+
+.game-info-panel .hand-item {
+    margin: 0 3px;
+    text-align: center;
+}
+
+.game-info-panel .hand-item .label {
+    font-size: 0.7rem;
+    color: #FFD700;
+    margin-bottom: 1px;
+}
+
+.game-info-panel .hand-item .value {
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #FF69B4;
+}
+
+.game-info-panel .algorithm-info {
+    margin: 3px 0 0 0;
+    font-size: 0.7rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.game-info-panel .algorithm-info span {
+    color: #FFD700;
+}
+
+.settings-panel h3 {
+    color: #FFD700;
+    margin-bottom: 10px;
+    font-size: 1rem;
+}
+
+.settings-panel label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+}
+
+.settings-panel input[type="checkbox"] {
+    margin-right: 8px;
+}
+
+.settings-panel button {
+    width: 100%;
+    margin-top: 10px;
+    padding: 8px;
+    font-size: 0.9rem;
+}
+
+/* 结果场景样式 */
+#result-scene {
+    text-align: center;
+    padding: 30px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 15px;
+    margin-bottom: 20px;
+}
+
+#result-scene h2 {
+    color: #FFD700;
+    margin-bottom: 20px;
+    font-size: 2rem;
+}
+
+.result-controls {
+    margin-top: 30px;
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+/* 日志场景样式 */
+.logs-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.logs-controls button {
+    padding: 8px 16px;
+    font-size: 0.9rem;
+}
+
+#logs-content {
+    height: 500px;
+    overflow-y: auto;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 15px;
+    border-radius: 5px;
+    font-family: monospace;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+#logs-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+#logs-content::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
+#logs-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 215, 0, 0.5);
+    border-radius: 4px;
+}
+
+#logs-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 215, 0, 0.7);
+}
+
+/* 响应式样式 */
+@media (max-width: 600px) {
+    h1 {
+        font-size: 2rem;
+    }
+
+    .controls {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    button {
+        width: 100%;
+    }
+
+    .settings-panel {
+        position: static;
+        margin-bottom: 20px;
+    }
+
+    .game-info-panel {
+        position: static;
+        margin-bottom: 20px;
+    }
+
+    .logs-controls {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .logs-controls button {
+        width: 100%;
+    }
+}
+
+/* 动画效果 */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes glow {
+    0% {
+        box-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+    }
+    100% {
+        box-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+    }
+}
+
+/* 场景切换动画 */
+.scene {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+/* 按钮悬停效果 */
+button:hover {
+    animation: pulse 0.3s ease-in-out;
+}
+
+/* 特殊效果 */
+.glow-effect {
+    animation: glow 2s ease-in-out infinite;
+}
+
+/* 加载动画 */
+.loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #FFD700;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* 工具提示样式 */
+.tooltip {
+    position: relative;
+    display: inline-block;
+}
+
+.tooltip .tooltiptext {
+    visibility: hidden;
+    width: 120px;
+    background-color: rgba(0, 0, 0, 0.9);
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -60px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 0.8rem;
+}
+
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* 卦象显示样式 */
+.yao-display {
+    transition: all 0.3s ease;
+}
+
+.yao-display:hover {
+    transform: scale(1.1);
+    filter: brightness(1.2);
+}
+
+/* 进度条样式 */
+.progress-bar {
+    width: 100%;
+    height: 20px;
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 10px 0;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(to right, #FFD700, #FFA500);
+    border-radius: 10px;
+    transition: width 0.3s ease;
+}
+
+/* 日志样式 */
+.log-entry {
+    margin: 5px 0;
+    padding: 5px;
+    border-radius: 3px;
+    transition: background-color 0.3s ease;
+}
+
+.log-entry:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.log-entry.error {
+    color: #ff6b6b;
+}
+
+.log-entry.warn {
+    color: #ffd93d;
+}
+
+.log-entry.info {
+    color: #6bcf7f;
+}

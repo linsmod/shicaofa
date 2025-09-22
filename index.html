@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>蓍草占卜模拟游戏</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <header>
+        <h1>蓍草占卜模拟游戏</h1>
+        <p class="subtitle">体验古老《易经》占卜的现代交互方式</p>
+    </header>
+
+    <div class="container">
+        <!-- 游戏画布 -->
+        <div id="game-container">
+            <canvas id="game-canvas"></canvas>
+        </div>
+
+        <!-- 场景容器 -->
+        <div id="scenes-container">
+            <!-- 游戏场景 -->
+            <div id="game-scene" class="scene active">
+                <!-- 游戏内容将通过Canvas渲染 -->
+            </div>
+
+            <!-- 结果场景 -->
+            <div id="result-scene" class="scene">
+                <h2>占卜结果</h2>
+                <div id="result-content">
+                    <!-- 卦象和解释将通过JavaScript动态生成 -->
+                </div>
+                <div class="result-controls">
+                    <button onclick="restartGame()">重新占卜</button>
+                    <button onclick="startNewGame()">新的占卜</button>
+                </div>
+            </div>
+
+            <!-- 日志场景 -->
+            <div id="logs-scene" class="scene">
+                <div class="info-panel">
+                    <h2>占卜日志</h2>
+                    <div class="logs-controls">
+                        <button onclick="clearLogs()">清空日志</button>
+                        <button onclick="backToGame()">返回游戏</button>
+                    </div>
+                    <div id="logs-content">
+                        <!-- 日志内容将通过JavaScript动态显示 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 控制按钮 -->
+        <div class="controls">
+            <button id="restart-btn" onclick="restartGame()">重新开始</button>
+            <button id="auto-btn" onclick="autoComplete()">自动完成</button>
+            <button id="settings-btn" onclick="toggleSettings()">设置</button>
+            <button id="logs-btn" onclick="showLogs()">查看日志</button>
+        </div>
+    </div>
+
+    <footer>
+        <p>基于《易经》大衍筮法 | 本模拟器仅供娱乐参考</p>
+    </footer>
+
+    <!-- 引入JavaScript文件 -->
+    <script src="Engine.js"></script>
+    <script src="ui.js"></script>
+    <script src="scenes.js"></script>
+    <script src="utils.js"></script>
+    <script src="main.js"></script>
+</body>
+
+</html>
