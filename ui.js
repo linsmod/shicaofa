@@ -345,23 +345,27 @@ class GuaDisplay extends UIElement {
         ctx.fillStyle = '#FFD700';
         
         if (yaoValue === 9) {
-            // 老阳 ⚊○
-            ctx.fillRect(x, y, width - 20, height);
-            ctx.fillStyle = 'transparent';
-            ctx.fillRect(x + width - 15, y, 15, height);
+            // 老阳 ⚊○ - 实线中间加圆圈
+            ctx.fillRect(x, y, width, height);
+            ctx.fillStyle = '#228B22'; // 使用背景色来创建"透明"效果
+            ctx.beginPath();
+            ctx.arc(x + width - 15, y + height/2, 6, 0, Math.PI * 2);
+            ctx.fill();
         } else if (yaoValue === 8) {
-            // 少阴 ⚋
-            ctx.fillRect(x, y, width / 2 - 10, height);
-            ctx.fillRect(x + width / 2 + 10, y, width / 2 - 10, height);
+            // 少阴 ⚋ - 断线
+            ctx.fillRect(x, y, width / 2 - 8, height);
+            ctx.fillRect(x + width / 2 + 8, y, width / 2 - 8, height);
         } else if (yaoValue === 7) {
-            // 少阳 ⚊
+            // 少阳 ⚊ - 实线（修复完整显示）
             ctx.fillRect(x, y, width, height);
         } else if (yaoValue === 6) {
-            // 老阴 ⚋○
-            ctx.fillRect(x, y, width / 2 - 10, height);
-            ctx.fillRect(x + width / 2 + 10, y, width / 2 - 10, height);
-            ctx.fillStyle = 'transparent';
-            ctx.fillRect(x + width / 2 - 5, y, 10, height);
+            // 老阴 ⚋○ - 断线中间加圆圈
+            ctx.fillRect(x, y, width / 2 - 8, height);
+            ctx.fillRect(x + width / 2 + 8, y, width / 2 - 8, height);
+            ctx.fillStyle = '#228B22'; // 使用背景色来创建"透明"效果
+            ctx.beginPath();
+            ctx.arc(x + width / 2, y + height/2, 6, 0, Math.PI * 2);
+            ctx.fill();
         }
     }
 }

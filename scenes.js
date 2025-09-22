@@ -718,7 +718,12 @@ class GameScene extends Scene {
 
     showResult() {
         if (this.sceneManager) {
-            this.sceneManager.switchToScene('result');
+            // 不直接切换场景，而是调用全局的showResult函数
+            if (window.showResult) {
+                window.showResult();
+            } else {
+                this.sceneManager.switchToScene('result');
+            }
         }
     }
 
@@ -750,12 +755,17 @@ class ResultScene extends Scene {
         this.newGameButton = null;
         this.guaDisplay = null;
         this.yaos = [];
+        this.guaData = null; // 缓存卦象数据
+        this.isGuaDataCalculated = false; // 标记是否已计算
     }
 
     init(yaos = []) {
-        this.yaos = yaos;
+        // 只有当传入的yaos不为空时才更新，避免覆盖已经传递的数据
+        if (yaos && yaos.length > 0) {
+            this.yaos = yaos;
+        }
         this.createUI();
-        this.generateResult();
+        // 不在这里调用generateResult，让外部控制调用时机
     }
 
     createUI() {
@@ -795,27 +805,36 @@ class ResultScene extends Scene {
         const yaos = this.yaos || [];
         console.log('ResultScene中的yaos数组:', yaos);
         
-        const guaData = this.calculateGuaFromYaos(yaos);
-        
-        // 设置卦象数据到GuaDisplay组件
-        if (this.guaDisplay) {
-            this.guaDisplay.setGuaData(guaData.name, guaData.symbol, yaos);
-            this.guaDisplay.setVisible(true);
+        if (yaos.length === 0) {
+            console.warn('警告：yaos数组为空，无法计算卦象');
+            return;
         }
         
-        // 输出结果到控制台
-        console.log(`本卦：${guaData.interpretation}`);
-        console.log(`卦象：${guaData.symbolism}`);
-        console.log(`建议：${guaData.advice}`);
-        
-        // 获取变爻信息
-        const changingYaos = yaos
-            .map((yao, index) => yao === 9 || yao === 6 ? index + 1 : null)
-            .filter(yao => yao !== null);
-        
-        if (changingYaos.length > 0 && window.StalksAlgorithm) {
-            const advice = window.StalksAlgorithm.getChangingYaoAdvice(changingYaos);
-            console.log(`变爻提示：${advice}`);
+        // 如果还没有计算过或者yaos数据有变化，才重新计算
+        if (!this.isGuaDataCalculated || this.yaos !== yaos) {
+            this.guaData = this.calculateGuaFromYaos(yaos);
+            this.isGuaDataCalculated = true;
+            
+            // 设置卦象数据到GuaDisplay组件
+            if (this.guaDisplay) {
+                this.guaDisplay.setGuaData(this.guaData.name, this.guaData.symbol, yaos);
+                this.guaDisplay.setVisible(true);
+            }
+            
+            // 输出结果到控制台
+            console.log(`本卦：${this.guaData.interpretation}`);
+            console.log(`卦象：${this.guaData.symbolism}`);
+            console.log(`建议：${this.guaData.advice}`);
+            
+            // 获取变爻信息
+            const changingYaos = yaos
+                .map((yao, index) => yao === 9 || yao === 6 ? index + 1 : null)
+                .filter(yao => yao !== null);
+            
+            if (changingYaos.length > 0 && window.StalksAlgorithm) {
+                const advice = window.StalksAlgorithm.getChangingYaoAdvice(changingYaos);
+                console.log(`变爻提示：${advice}`);
+            }
         }
     }
 
@@ -844,20 +863,48 @@ class ResultScene extends Scene {
         if (this.restartButton) this.restartButton.render(ctx);
         if (this.newGameButton) this.newGameButton.render(ctx);
         
-        // 绘制卦象解释和建议
-        if (this.yaos.length > 0) {
-            const guaData = this.calculateGuaFromYaos(this.yaos);
-            
-            // 绘制解释
+        // 绘制卦象信息（使用缓存的数据，避免重复计算）
+        if (this.yaos.length > 0 && this.guaData) {
+            // 绘制卦名和解释
             ctx.fillStyle = '#fff';
             ctx.font = '1rem "Microsoft YaHei", sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText(guaData.interpretation, width / 2, height - 180);
+            ctx.fillText(this.guaData.interpretation, width / 2, height - 200);
             
-            // 绘制建议
+            // 绘制卦象
             ctx.fillStyle = '#FFD700';
             ctx.font = '0.9rem "Microsoft YaHei", sans-serif';
-            ctx.fillText(guaData.advice, width / 2, height - 150);
+            ctx.fillText(this.guaData.symbolism, width / 2, height - 170);
+            
+            // 绘制建议
+            ctx.fillStyle = '#90EE90';
+            ctx.font = '0.9rem "Microsoft YaHei", sans-serif';
+            ctx.fillText('建议：' + this.guaData.advice, width / 2, height - 140);
+            
+            // 绘制爻辞标题
+            ctx.fillStyle = '#FFD700';
+            ctx.font = 'bold 0.9rem "Microsoft YaHei", sans-serif';
+            ctx.fillText('爻辞：', width / 2, height - 100);
+            
+            // 绘制六爻爻辞
+            ctx.fillStyle = '#fff';
+            ctx.font = '0.8rem "Microsoft YaHei", sans-serif';
+            
+            // 爻辞数组（示例，实际应该从卦象数据中获取）
+            const yaoTexts = [
+                `初爻：${this.yaos[0] === 9 || this.yaos[0] === 7 ? '阳' : '阴'}爻`,
+                `二爻：${this.yaos[1] === 9 || this.yaos[1] === 7 ? '阳' : '阴'}爻`,
+                `三爻：${this.yaos[2] === 9 || this.yaos[2] === 7 ? '阳' : '阴'}爻`,
+                `四爻：${this.yaos[3] === 9 || this.yaos[3] === 7 ? '阳' : '阴'}爻`,
+                `五爻：${this.yaos[4] === 9 || this.yaos[4] === 7 ? '阳' : '阴'}爻`,
+                `上爻：${this.yaos[5] === 9 || this.yaos[5] === 7 ? '阳' : '阴'}爻`
+            ];
+            
+            // 绘制每个爻的信息
+            for (let i = 0; i < 6; i++) {
+                const y = height - 70 + i * 15;
+                ctx.fillText(yaoTexts[i], width / 2, y);
+            }
         }
     }
 

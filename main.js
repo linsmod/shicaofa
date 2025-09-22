@@ -73,37 +73,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         };
         
-        resultScene.generateResult = function() {
-            const guaData = StalksAlgorithm.calculateGuaFromYaos(this.yaos);
-            
-            // 创建卦象显示
-            if (!this.guaDisplay) {
-                this.guaDisplay = new GuaDisplay(
-                    this.engine.getCanvas().width / 2 - 150,
-                    100,
-                    300,
-                    200
-                );
-            }
-            
-            this.guaDisplay.setGuaData(guaData.name, guaData.symbol, this.yaos);
-            this.guaDisplay.setVisible(true);
-            
-            // 显示解释
-            console.log(`本卦：${guaData.interpretation}`);
-            console.log(`卦象：${guaData.symbolism}`);
-            console.log(`建议：${guaData.advice}`);
-            
-            // 获取变爻信息
-            const changingYaos = this.yaos
-                .map((yao, index) => yao === 9 || yao === 6 ? index + 1 : null)
-                .filter(yao => yao !== null);
-            
-            if (changingYaos.length > 0) {
-                const advice = StalksAlgorithm.getChangingYaoAdvice(changingYaos);
-                console.log(`变爻提示：${advice}`);
-            }
-        };
+        // 移除重复定义的generateResult函数，使用ResultScene类中定义的方法
         
         logsScene.init = function(logs = []) {
             this.logsContent = logs;
@@ -168,13 +138,16 @@ document.addEventListener('DOMContentLoaded', function() {
             // 传递爻值到结果场景
             currentResultScene.yaos = [...currentGameScene.yaos];
             console.log('从GameScene传递到ResultScene的yaos:', currentGameScene.yaos);
+            console.log('currentGameScene.yaos长度:', currentGameScene.yaos.length);
             
             // 切换到结果场景
             gameEngine.sceneManager.switchToScene('result');
             
-            // 生成结果
+            // 等待场景切换完成后再生成结果
             setTimeout(() => {
-                currentResultScene.generateResult();
+                if (currentResultScene && currentResultScene.generateResult) {
+                    currentResultScene.generateResult();
+                }
             }, 100);
         }
     }
