@@ -307,17 +307,27 @@ class GuaDisplay extends UIElement {
         this.guaName = name;
         this.guaSymbol = symbol;
         this.yaos = yaos;
-        this.changingYaos = yaos.filter(yao => yao === 9 || yao === 6).map((_, index) => index + 1);
+        // 修复变爻计算：保持原始数组的index
+        this.changingYaos = yaos
+            .map((yao, index) => yao === 9 || yao === 6 ? index + 1 : null)
+            .filter(yao => yao !== null);
     }
 
     render(ctx) {
         if (!this.visible) return;
 
-        // 绘制卦名
+        // 绘制卦名和完整解读
         ctx.fillStyle = '#FFD700';
-        ctx.font = 'bold 2rem "Microsoft YaHei", sans-serif';
+        ctx.font = 'bold 1.8rem "Microsoft YaHei", sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText(`${this.guaSymbol} ${this.guaName}卦`, this.x + this.width / 2, this.y + 30);
+        
+        // 绘制卦的解读
+        if (this.guaData && this.guaData.interpretation) {
+            ctx.fillStyle = '#90EE90';
+            ctx.font = '1rem "Microsoft YaHei", sans-serif';
+            ctx.fillText(this.guaData.interpretation, this.x + this.width / 2, this.y + 55);
+        }
 
         // 绘制六爻
         const yaoWidth = 120;
@@ -328,11 +338,22 @@ class GuaDisplay extends UIElement {
         for (let i = 5; i >= 0; i--) {
             const yaoValue = this.yaos[i];
             const yaoY = startY + (5 - i) * (yaoHeight + yaoSpacing);
+            const yaoX = this.x + (this.width - yaoWidth) / 2;
 
-            this.drawYao(ctx, this.x + (this.width - yaoWidth) / 2, yaoY, yaoWidth, yaoHeight, yaoValue);
+            // 绘制爻
+            this.drawYao(ctx, yaoX, yaoY, yaoWidth, yaoHeight, yaoValue);
+            
+            // 如果是变爻（老阳或老阴），在爻的旁边添加文字说明
+            if (yaoValue === 9 || yaoValue === 6) {
+                ctx.fillStyle = '#90EE90';
+                ctx.font = '0.8rem "Microsoft YaHei", sans-serif';
+                ctx.textAlign = 'left';
+                const yaoName = yaoValue === 9 ? '老阳' : '老阴';
+                ctx.fillText(yaoName, yaoX + yaoWidth + 10, yaoY + yaoHeight / 2 + 3);
+            }
         }
 
-        // 绘制变爻信息
+        // 绘制变爻信息（简化版，只显示基本变爻位置）
         if (this.changingYaos.length > 0) {
             ctx.fillStyle = '#FFD700';
             ctx.font = '1rem "Microsoft YaHei", sans-serif';
@@ -345,27 +366,19 @@ class GuaDisplay extends UIElement {
         ctx.fillStyle = '#FFD700';
         
         if (yaoValue === 9) {
-            // 老阳 ⚊○ - 实线中间加圆圈
+            // 老阳 ⚊ - 实线（去掉圆圈）
             ctx.fillRect(x, y, width, height);
-            ctx.fillStyle = '#228B22'; // 使用背景色来创建"透明"效果
-            ctx.beginPath();
-            ctx.arc(x + width - 15, y + height/2, 6, 0, Math.PI * 2);
-            ctx.fill();
         } else if (yaoValue === 8) {
             // 少阴 ⚋ - 断线
             ctx.fillRect(x, y, width / 2 - 8, height);
             ctx.fillRect(x + width / 2 + 8, y, width / 2 - 8, height);
         } else if (yaoValue === 7) {
-            // 少阳 ⚊ - 实线（修复完整显示）
+            // 少阳 ⚊ - 实线
             ctx.fillRect(x, y, width, height);
         } else if (yaoValue === 6) {
-            // 老阴 ⚋○ - 断线中间加圆圈
+            // 老阴 ⚋ - 断线（去掉圆圈）
             ctx.fillRect(x, y, width / 2 - 8, height);
             ctx.fillRect(x + width / 2 + 8, y, width / 2 - 8, height);
-            ctx.fillStyle = '#228B22'; // 使用背景色来创建"透明"效果
-            ctx.beginPath();
-            ctx.arc(x + width / 2, y + height/2, 6, 0, Math.PI * 2);
-            ctx.fill();
         }
     }
 }
