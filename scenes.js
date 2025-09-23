@@ -81,7 +81,7 @@ class StartScene extends Scene {
         }
     }
     onExit(){
-        return this.yaos;
+        return null; // StartScene没有占卜结果，返回null
     }
 }
 
@@ -1945,6 +1945,19 @@ class GameScene extends Scene {
     updateDisplay() {
         // 更新界面显示的逻辑
     }
+
+    /**
+     * 场景退出时调用
+     */
+    onExit() {
+        // 隐藏进度条Canvas
+        if (this.progressCanvas && this.progressCanvas.container) {
+            this.progressCanvas.container.style.display = 'none';
+        }
+        // 返回占卜结果参数
+        return this.yaos;
+        console.log(`Scene '${this.name}' exited`);
+    }
 }
 
 /**
@@ -1971,6 +1984,47 @@ class ResultScene extends Scene {
         this.createUI();
         this.registerUIElements();
         // 不在这里调用generateResult，让外部控制调用时机
+    }
+
+    /**
+     * 场景进入时调用
+     * @param {Array} lastSceneResult - 上一个场景返回的结果
+     */
+    onEnter(lastSceneResult) {
+        // 首先调用父类的onEnter方法，确保场景被正确初始化
+        super.onEnter();
+        
+        // 处理从GameScene传递过来的yaos参数
+        if (lastSceneResult && Array.isArray(lastSceneResult) && lastSceneResult.length > 0) {
+            this.yaos = lastSceneResult;
+            console.log('ResultScene接收到yaos参数:', this.yaos);
+        }
+        
+        // 确保进度条Canvas保持隐藏状态
+        if (this.engine && this.engine.getCurrentScene && this.engine.getCurrentScene().progressCanvas &&
+            this.engine.getCurrentScene().progressCanvas.container) {
+            this.engine.getCurrentScene().progressCanvas.container.style.display = 'none';
+        }
+        
+        // 生成占卜结果
+        this.generateResult();
+        
+        // 调试信息：检查GuaDisplay状态
+        if (this.guaDisplay) {
+            console.log('GuaDisplay状态:', {
+                visible: this.guaDisplay.visible,
+                originalGuaName: this.guaDisplay.originalGuaName,
+                originalGuaSymbol: this.guaDisplay.originalGuaSymbol,
+                x: this.guaDisplay.x,
+                y: this.guaDisplay.y,
+                width: this.guaDisplay.width,
+                height: this.guaDisplay.height
+            });
+        } else {
+            console.log('GuaDisplay未初始化');
+        }
+        
+        console.log(`Scene '${this.name}' entered`);
     }
 
     createUI() {
