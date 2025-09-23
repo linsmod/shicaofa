@@ -16,9 +16,6 @@ class Button extends UIElement {
         this.fontWeight = 'normal';
         this.borderColor = '#8B4513';
         this.borderWidth = 1;
-        this.isHovered = false;
-        this.isPressed = false;
-        this.isDragging = false;
     }
 
     setBackgroundColor(color) {
@@ -125,7 +122,7 @@ class Button extends UIElement {
     // 鼠标按下事件
     handleMouseDown(x, y) {
         if (this.isPointInside(x, y)) {
-            this.isPressed = true;
+            super.handleMouseDown(x, y);
             this.isDragging = true;
             return true;
         }
@@ -135,19 +132,18 @@ class Button extends UIElement {
     // 鼠标释放事件
     handleMouseUp(x, y) {
         if (this.isPressed && this.isPointInside(x, y)) {
-            this.isPressed = false;
             if (this.onClick) {
                 this.onClick();
             }
-            return true;
         }
-        this.isPressed = false;
+        super.handleMouseUp(x, y);
         this.isDragging = false;
-        return false;
+        return true;
     }
 
     // 鼠标移动事件
     handleMouseMove(x, y) {
+        super.handleMouseMove(x, y);
         if (this.isDragging) {
             const wasInside = this.isPressed;
             const isInside = this.isPointInside(x, y);
@@ -162,18 +158,31 @@ class Button extends UIElement {
             return true;
         }
         
-        // 更新悬停状态
-        const wasHovered = this.isHovered;
-        this.isHovered = this.isPointInside(x, y);
-        
-        return wasHovered !== this.isHovered;
+        return false;
+    }
+
+    // 鼠标进入事件
+    handleMouseEnter(x, y) {
+        super.handleMouseEnter(x, y);
+        // 按钮特定的悬停逻辑可以在这里添加
     }
 
     // 鼠标离开事件
     handleMouseLeave() {
-        this.isPressed = false;
+        super.handleMouseLeave();
         this.isDragging = false;
-        this.isHovered = false;
+    }
+
+    // 点击事件
+    handleClick(x, y) {
+        super.handleClick(x, y);
+        // 按钮特定的点击逻辑可以在这里添加
+    }
+
+    // 更新方法
+    update(deltaTime) {
+        // 按钮特定的更新逻辑可以在这里添加
+        // 例如：动画效果、状态更新等
     }
 }
 

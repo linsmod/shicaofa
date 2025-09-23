@@ -41,11 +41,21 @@ class StartScene extends Scene {
     }
 
     setupEventListeners() {
-        // 添加鼠标事件监听
-        this.engine.getCanvas().addEventListener('mousedown', (e) => this.handleEvent('mousedown', e));
-        this.engine.getCanvas().addEventListener('mouseup', (e) => this.handleEvent('mouseup', e));
-        this.engine.getCanvas().addEventListener('mousemove', (e) => this.handleEvent('mousemove', e));
-        this.engine.getCanvas().addEventListener('click', (e) => this.handleEvent('click', e));
+        // 新的事件系统已经在游戏引擎主循环中处理，这里不需要添加原生事件监听
+        // 但可以保留一些特殊的事件监听，比如键盘事件
+        window.addEventListener('keydown', (e) => this.handleKeyDown(e));
+    }
+
+    /**
+     * 处理键盘事件
+     * @param {KeyboardEvent} e - 键盘事件对象
+     */
+    handleKeyDown(e) {
+        // 子类可以重写此方法来处理键盘事件
+    }
+    
+    handleKeyUp(e){
+
     }
 
 
@@ -1318,14 +1328,6 @@ class GameScene extends Scene {
         });
     }
 
-    /**
-     * 更新场景
-     * @param {number} deltaTime - 距离上一帧的时间（毫秒）
-     */
-    update(deltaTime) {
-        // 更新特效动画
-        this.updateEffects(deltaTime);
-    }
 
     initStalks() {
         this.stalks = [];
@@ -1438,45 +1440,99 @@ class GameScene extends Scene {
     }
 
     setupEventListeners() {
-        const canvas = this.engine.getCanvas();
-
-        // 鼠标事件
-        canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e));
-        canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
-        canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e));
-        canvas.addEventListener('click', (e) => this.handleClick(e));
-
-        // 触摸事件
-        canvas.addEventListener('touchstart', (e) => this.handleStart(e));
-        canvas.addEventListener('touchmove', (e) => this.handleMove(e));
-        canvas.addEventListener('touchend', (e) => this.handleEnd(e));
+        // 新的事件系统已经在游戏引擎主循环中处理，这里不需要添加原生事件监听
+        // 但可以保留一些特殊的事件监听，比如键盘事件
+        this.engine.getCanvas().addEventListener('keydown', (e) => this.handleKeyDown(e));
+        
+        // 触摸事件暂时保留，因为需要特殊的处理
+        this.engine.getCanvas().addEventListener('touchstart', (e) => this.handleTouchStart(e));
+        this.engine.getCanvas().addEventListener('touchmove', (e) => this.handleTouchMove(e));
+        this.engine.getCanvas().addEventListener('touchend', (e) => this.handleTouchEnd(e));
     }
 
-    handleStart(e) {
+    /**
+     * 处理键盘事件
+     * @param {KeyboardEvent} e - 键盘事件对象
+     */
+    handleKeyDown(e) {
+        // 子类可以重写此方法来处理键盘事件
+    }
+
+    /**
+     * 处理触摸开始事件
+     * @param {TouchEvent} e - 触摸事件对象
+     */
+    handleTouchStart(e) {
+        // 将触摸事件转换为鼠标事件坐标
+        const rect = this.engine.getCanvas().getBoundingClientRect();
+        const touch = e.touches[0];
+        const x = touch.clientX - rect.left;
+        const y = touch.clientY - rect.top;
+        
+        // 记录触摸开始位置（用于判断点击）
+        this.touchStartX = x;
+        this.touchStartY = y;
+        
+        // 调用鼠标按下事件处理
+        this.handleMouseDown(x, y);
+    }
+
+    /**
+     * 处理触摸移动事件
+     * @param {TouchEvent} e - 触摸事件对象
+     */
+    handleTouchMove(e) {
+        // 将触摸事件转换为鼠标事件坐标
+        const rect = this.engine.getCanvas().getBoundingClientRect();
+        const touch = e.touches[0];
+        const x = touch.clientX - rect.left;
+        const y = touch.clientY - rect.top;
+        
+        // 调用鼠标移动事件处理
+        this.handleMouseMove(x, y);
+    }
+
+    /**
+     * 处理触摸结束事件
+     * @param {TouchEvent} e - 触摸事件对象
+     */
+    handleTouchEnd(e) {
+        // 将触摸事件转换为鼠标事件坐标
+        const rect = this.engine.getCanvas().getBoundingClientRect();
+        const touch = e.changedTouches[0];
+        const x = touch.clientX - rect.left;
+        const y = touch.clientY - rect.top;
+        
+        // 判断是否构成点击事件
+        const isClick = this.isClick(this.touchStartX, this.touchStartY, x, y);
+        if (isClick) {
+            this.handleClick(x, y);
+        }
+        
+        // 调用鼠标释放事件处理
+        this.handleMouseUp(x, y);
+    }
+
+    handleStart(x, y) {
         if (this.sceneManager && this.sceneManager.getCurrentSceneName() !== 'game') return;
 
-        const rect = this.engine.getCanvas().getBoundingClientRect();
-        this.lastX = e.clientX - rect.left || e.touches[0].clientX - rect.left;
-        this.lastY = e.clientY - rect.top || e.touches[0].clientY - rect.top;
+        this.lastX = x;
+        this.lastY = y;
         this.isDragging = true;
         this.trail = [{ x: this.lastX, y: this.lastY }];
     }
 
-    handleMove(e) {
+    handleMove(x, y) {
         if (!this.isDragging) return;
 
-        const rect = this.engine.getCanvas().getBoundingClientRect();
-        const currentX = e.clientX - rect.left || e.touches[0].clientX - rect.left;
-        const currentY = e.clientY - rect.top || e.touches[0].clientY - rect.top;
-
-        this.trail.push({ x: currentX, y: currentY });
+        this.trail.push({ x, y });
 
         if (this.trail.length > 20) {
             this.trail.shift();
         }
     }
 
-    handleEnd(e) {
+    handleEnd(x, y) {
         if (!this.isDragging) return;
 
         this.isDragging = false;
@@ -1489,97 +1545,112 @@ class GameScene extends Scene {
         this.dirty = true;
     }
 
-    handleMouseDown(e) {
+    handleMouseDown(x, y) {
         // 先处理UI元素事件
-        const rect = this.engine.getCanvas().getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        // 检查是否点击了UI元素
-        let uiHandled = false;
-        for (let i = this.uiElements.length - 1; i >= 0; i--) {
-            const element = this.uiElements[i];
-            if (element.visible && element.enabled && element.isPointInside(x, y)) {
-                if (element.handleMouseDown) {
-                    element.handleMouseDown(x, y);
-                }
-                uiHandled = true;
-                break;
-            }
-        }
-
+        const handled = super.handleMouseDown(x, y);
+        
         // 如果没有点击UI元素，则处理蓍草拖拽
-        if (!uiHandled) {
-            this.handleStart(e);
+        if (!handled) {
+            this.handleStart(x, y);
         }
+        
+        return handled;
     }
 
-    handleMouseUp(e) {
+    handleMouseUp(x, y) {
         // 先处理UI元素事件
-        const rect = this.engine.getCanvas().getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        // 检查是否释放了UI元素
-        let uiHandled = false;
-        for (let i = this.uiElements.length - 1; i >= 0; i--) {
-            const element = this.uiElements[i];
-            if (element.visible && element.enabled && element.isPointInside(x, y)) {
-                if (element.handleMouseUp) {
-                    element.handleMouseUp(x, y);
-                }
-                uiHandled = true;
-                break;
-            }
-        }
-
+        const handled = super.handleMouseUp(x, y);
+        
         // 如果没有释放UI元素，则处理蓍草拖拽结束
-        if (!uiHandled) {
-            this.handleEnd(e);
+        if (!handled) {
+            this.handleEnd(x, y);
         }
+        
+        return handled;
     }
 
-    handleMouseMove(e) {
+    handleMouseMove(x, y) {
         // 先处理UI元素事件
-        const rect = this.engine.getCanvas().getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        // 检查鼠标是否在UI元素上
-        let uiHandled = false;
-        for (let i = this.uiElements.length - 1; i >= 0; i--) {
-            const element = this.uiElements[i];
-            if (element.visible && element.enabled && element.isPointInside(x, y)) {
-                if (element.handleMouseMove) {
-                    element.handleMouseMove(x, y);
-                }
-                uiHandled = true;
-                break;
-            }
-        }
-
+        const handled = super.handleMouseMove(x, y);
+        
         // 如果鼠标不在UI元素上，则处理蓍草拖拽
-        if (!uiHandled && this.isDragging) {
-            this.handleMove(e);
+        if (!handled && this.isDragging) {
+            this.handleMove(x, y);
+        }
+        
+        return handled;
+    }
+
+    handleClick(x, y) {
+        // 处理UI元素点击事件
+        return super.handleClick(x, y);
+    }
+
+    /**
+     * 处理蓍草拖拽开始
+     * @param {number} x - 鼠标X坐标
+     * @param {number} y - 鼠标Y坐标
+     */
+    handleStart(x, y) {
+        if (this.sceneManager && this.sceneManager.getCurrentSceneName() !== 'game') return;
+
+        this.lastX = x;
+        this.lastY = y;
+        this.isDragging = true;
+        this.trail = [{ x: this.lastX, y: this.lastY }];
+    }
+
+    /**
+     * 处理蓍草拖拽移动
+     * @param {number} x - 鼠标X坐标
+     * @param {number} y - 鼠标Y坐标
+     */
+    handleMove(x, y) {
+        if (!this.isDragging) return;
+
+        this.trail.push({ x, y });
+
+        if (this.trail.length > 20) {
+            this.trail.shift();
         }
     }
 
-    handleClick(e) {
-        // 处理UI元素点击事件
-        const rect = this.engine.getCanvas().getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+    /**
+     * 处理蓍草拖拽结束
+     * @param {number} x - 鼠标X坐标
+     * @param {number} y - 鼠标Y坐标
+     */
+    handleEnd(x, y) {
+        if (!this.isDragging) return;
 
-        // 检查是否点击了UI元素
-        for (let i = this.uiElements.length - 1; i >= 0; i--) {
-            const element = this.uiElements[i];
-            if (element.visible && element.enabled && element.isPointInside(x, y)) {
-                if (element.onClick) {
-                    element.onClick();
-                }
-                return; // UI元素点击事件已处理，不再传递
-            }
+        this.isDragging = false;
+
+        if (this.trail.length > 1) {
+            this.performDivision();
         }
+
+        this.trail = [];
+        this.dirty = true;
+    }
+
+    update(deltaTime) {
+        // 更新父类
+        super.update(deltaTime);
+        
+        // 更新游戏特定的逻辑
+        if (this.effectSystem.isActive) {
+            this.updateEffects(deltaTime);
+        }
+        
+        // 更新蓍草动画
+        this.updateStalksAnimation(deltaTime);
+    }
+
+    /**
+     * 更新蓍草动画
+     */
+    updateStalksAnimation(deltaTime) {
+        // 可以在这里添加蓍草的动画逻辑
     }
     createCutLine() {
         // 计算划拉线的起点和终点
@@ -2094,20 +2165,20 @@ class ResultScene extends Scene {
             }
 
             // 输出结果到控制台
-            console.log(`本卦：${this.guaData.interpretation}`);
-            console.log(`卦象：${this.guaData.symbolism}`);
-            console.log(`建议：${this.guaData.advice}`);
+            // console.log(`本卦：${this.guaData.interpretation}`);
+            // console.log(`卦象：${this.guaData.symbolism}`);
+            // console.log(`建议：${this.guaData.advice}`);
 
             // 获取变爻信息
-            const changingYaoIndices = yaos
-                .map((yao, index) => yao === 9 || yao === 6 ? index + 1 : null)
-                .filter(yao => yao !== null);
+            // const changingYaoIndices = yaos
+            //     .map((yao, index) => yao === 9 || yao === 6 ? index + 1 : null)
+            //     .filter(yao => yao !== null);
 
-            if (changingYaoIndices.length > 0 && window.StalksAlgorithm) {
-                const advice = window.StalksAlgorithm.getChangingYaoAdvice(changingYaoIndices);
-                console.log(`变爻提示：${advice}`);
-                console.log(`变卦：${changingGuaData.name} (${changingGuaData.symbol})`);
-            }
+            // if (changingYaoIndices.length > 0 && window.StalksAlgorithm) {
+            //     const advice = window.StalksAlgorithm.getChangingYaoAdvice(changingYaoIndices);
+            //     console.log(`变爻提示：${advice}`);
+            //     console.log(`变卦：${changingGuaData.name} (${changingGuaData.symbol})`);
+            // }
         }
     }
 
