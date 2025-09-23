@@ -283,11 +283,7 @@ class GameScene extends Scene {
         const scaledWidth = displayWidth;
         const scaledHeight = 60; // CSS高度固定为60px
         
-        // 绘制进度标题
-        this.progressCanvas.ctx.fillStyle = '#FFD700';
-        this.progressCanvas.ctx.font = 'bold 16px "Microsoft YaHei", sans-serif';
-        this.progressCanvas.ctx.textAlign = 'left';
-        this.progressCanvas.ctx.fillText('取', 10, 20);
+       
         
         // 计算内容区域宽度
         const titleWidth = this.progressCanvas.ctx.measureText('取').width;
@@ -304,6 +300,12 @@ class GameScene extends Scene {
         // 绘制进度背景（适应内容宽度）
         this.progressCanvas.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
         this.progressCanvas.ctx.fillRect(0, 0, backgroundWidth, scaledHeight);
+
+         // 绘制进度标题
+        this.progressCanvas.ctx.fillStyle = '#FFD700';
+        this.progressCanvas.ctx.font = 'bold 16px "Microsoft YaHei", sans-serif';
+        this.progressCanvas.ctx.textAlign = 'left';
+        this.progressCanvas.ctx.fillText('取', 10, 20);
         
         // 添加内边距
         const padding = 0;
