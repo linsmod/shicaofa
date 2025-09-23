@@ -1256,9 +1256,6 @@ class GameScene extends Scene {
             this.currentStep++;
             this.currentChange++;
 
-            // 更新进度条Canvas
-            this.renderProgressCanvas();
-
             if (this.currentChange >= 3) {
                 const yaoValue = this.calculateYaoValue();
                 this.yaos.push(yaoValue);
@@ -1833,13 +1830,14 @@ class GameScene extends Scene {
         ctx.fillStyle = '#228B22';
         ctx.fillRect(0, 0, width, height);
 
-        // 绘制蓍草（圆点）
-        this.drawStalks(ctx);
+      
 
-        if(this.dirty)
-        // 在圆点渲染完成后备份主Canvas，为特效渲染做准备
+        if(this.dirty){
+            // 绘制蓍草（圆点）
+            this.drawStalks(ctx);
+            // 在圆点渲染完成后备份主Canvas，为特效渲染做准备
             this.backupMainCanvas();
-
+        }
         // 渲染特效
         this.renderEffects(ctx);
 
