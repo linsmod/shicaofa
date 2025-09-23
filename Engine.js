@@ -6,6 +6,7 @@ class GameEngine {
     constructor() {
         this.canvas = null;
         this.ctx = null;
+        this.canvasManager = null;
         this.sceneManager = null;
         this.renderer = null;
         this.isRunning = false;
@@ -24,10 +25,29 @@ class GameEngine {
             throw new Error(`Canvas element with id '${canvasId}' not found`);
         }
 
-        this.ctx = this.canvas.getContext('2d');
+        // 初始化Canvas管理器
+        this.canvasManager = new CanvasManager();
+        if (!this.canvasManager.init(this.canvas, {
+            enableHighQuality: true,
+            enablePixelAlignment: true,
+            enableImageSmoothing: true,
+            imageSmoothingQuality: 'high',
+            backgroundColor: '#228B22'
+        })) {
+            throw new Error('Failed to initialize CanvasManager');
+        }
+
+        this.ctx = this.canvasManager.getContext();
         if (!this.ctx) {
             throw new Error('Failed to get 2D context');
         }
+
+        // 设置尺寸变化回调
+        this.canvasManager.setResizeCallback((width, height) => {
+            if (this.sceneManager) {
+                this.sceneManager.onCanvasResize(width, height);
+            }
+        });
 
         // 初始化场景管理器
         this.sceneManager = new SceneManager(this);
@@ -38,12 +58,6 @@ class GameEngine {
         // 初始化鼠标事件
         this.initMouseEvents();
         
-        // 设置Canvas尺寸
-        this.resizeCanvas();
-        
-        // 监听窗口大小变化
-        window.addEventListener('resize', () => this.resizeCanvas());
-        
         console.log('Game Engine initialized successfully');
     }
 
@@ -51,33 +65,17 @@ class GameEngine {
      * 调整Canvas尺寸
      */
     resizeCanvas() {
-        if (!this.canvas) return;
-
-        const rect = this.canvas.getBoundingClientRect();
-        const displayWidth = rect.width;
-        const displayHeight = rect.height;
-
-        // 设置Canvas CSS尺寸
-        this.canvas.style.width = displayWidth + 'px';
-        this.canvas.style.height = displayHeight + 'px';
-
-        // 设置Canvas实际尺寸（不使用dpr，直接使用CSS像素尺寸）
-        this.canvas.width = displayWidth;
-        this.canvas.height = displayHeight;
-
-        // 重置变换矩阵
-        this.ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-        // 清除画布
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-        // 设置图像平滑质量
-        this.ctx.imageSmoothingEnabled = true;
-        this.ctx.imageSmoothingQuality = 'high';
-
+        if (!this.canvasManager) return;
+        
+        // 使用CanvasManager处理尺寸变化
+        this.canvasManager.handleResize();
+        
+        // 获取更新后的尺寸
+        const { width, height } = this.canvasManager.getDisplaySize();
+        
         // 通知场景管理器Canvas尺寸已改变
         if (this.sceneManager) {
-            this.sceneManager.onCanvasResize(displayWidth, displayHeight);
+            this.sceneManager.onCanvasResize(width, height);
         }
     }
 
@@ -251,6 +249,14 @@ class GameEngine {
      */
     getCanvas() {
         return this.canvas;
+    }
+
+    /**
+     * 获取Canvas管理器
+     * @returns {CanvasManager}
+     */
+    getCanvasManager() {
+        return this.canvasManager;
     }
 }
 

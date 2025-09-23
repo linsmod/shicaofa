@@ -182,14 +182,23 @@ class GameScene extends Scene {
      * 初始化Canvas备份系统
      */
     initCanvasBackup() {
-        const canvas = this.engine.getCanvas();
-        const rect = canvas.getBoundingClientRect();
-        const displayWidth = rect.width;
-        const displayHeight = rect.height;
+        const canvasManager = this.engine.getCanvasManager();
+        if (!canvasManager) {
+            console.warn('CanvasManager未初始化，使用传统方式创建备份Canvas');
+            const canvas = this.engine.getCanvas();
+            const rect = canvas.getBoundingClientRect();
+            const displayWidth = rect.width;
+            const displayHeight = rect.height;
 
-        // 创建备份Canvas
-        this.canvasBackup.backupCanvas = new OffscreenCanvas(displayWidth, displayHeight);
-        this.canvasBackup.backupCtx = this.canvasBackup.backupCanvas.getContext('2d');
+            // 创建备份Canvas
+            this.canvasBackup.backupCanvas = new OffscreenCanvas(displayWidth, displayHeight);
+            this.canvasBackup.backupCtx = this.canvasBackup.backupCanvas.getContext('2d');
+        } else {
+            // 使用CanvasManager创建离屏Canvas
+            const { width, height } = canvasManager.getDisplaySize();
+            this.canvasBackup.backupCanvas = canvasManager.createOffscreenCanvas(width, height);
+            this.canvasBackup.backupCtx = this.canvasBackup.backupCanvas.getContext('2d');
+        }
         
         console.log('Canvas备份系统初始化完成');
     }
@@ -198,36 +207,58 @@ class GameScene extends Scene {
      * 初始化进度条Canvas系统
      */
     initProgressCanvas() {
-        const canvas = this.engine.getCanvas();
-        const rect = canvas.getBoundingClientRect();
-        const displayWidth = rect.width;
-        const displayHeight = rect.height;
-        
-        // 创建进度条容器
-        this.progressCanvas.container = document.createElement('div');
-        this.progressCanvas.container.style.position = 'absolute';
-        this.progressCanvas.container.style.left = '0';
-        this.progressCanvas.container.style.top = '0';
-        this.progressCanvas.container.style.width = displayWidth + 'px';
-        this.progressCanvas.container.style.height = displayHeight + 'px';
-        this.progressCanvas.container.style.pointerEvents = 'none';
-        this.progressCanvas.container.style.zIndex = '25'; // 确保在最上层
-        
-        // 创建进度条Canvas（不使用dpr，直接使用CSS像素尺寸）
-        this.progressCanvas.canvas = document.createElement('canvas');
-        this.progressCanvas.canvas.width = displayWidth;  // 使用CSS像素宽度
-        this.progressCanvas.canvas.height = 60;  // 固定高度为60像素
-        this.progressCanvas.canvas.style.position = 'absolute';
-        this.progressCanvas.canvas.style.left = '0';
-        this.progressCanvas.canvas.style.top = '0';
-        this.progressCanvas.canvas.style.width = displayWidth + 'px';  // CSS宽度与主画布一致
-        this.progressCanvas.canvas.style.height = '60px';  // CSS高度固定
-        this.progressCanvas.canvas.style.pointerEvents = 'none';
-        
-        // 获取上下文
-        this.progressCanvas.ctx = this.progressCanvas.canvas.getContext('2d');
+        const canvasManager = this.engine.getCanvasManager();
+        if (!canvasManager) {
+            console.warn('CanvasManager未初始化，使用传统方式创建进度条Canvas');
+            const canvas = this.engine.getCanvas();
+            const rect = canvas.getBoundingClientRect();
+            const displayWidth = rect.width;
+            const displayHeight = rect.height;
+            
+            // 创建进度条容器
+            this.progressCanvas.container = document.createElement('div');
+            this.progressCanvas.container.style.position = 'absolute';
+            this.progressCanvas.container.style.left = '0';
+            this.progressCanvas.container.style.top = '0';
+            this.progressCanvas.container.style.width = displayWidth + 'px';
+            this.progressCanvas.container.style.height = displayHeight + 'px';
+            this.progressCanvas.container.style.pointerEvents = 'none';
+            this.progressCanvas.container.style.zIndex = '25'; // 确保在最上层
+            
+            // 创建进度条Canvas
+            this.progressCanvas.canvas = document.createElement('canvas');
+            this.progressCanvas.canvas.width = displayWidth;
+            this.progressCanvas.canvas.height = 60;
+            this.progressCanvas.canvas.style.position = 'absolute';
+            this.progressCanvas.canvas.style.left = '0';
+            this.progressCanvas.canvas.style.top = '0';
+            this.progressCanvas.canvas.style.width = displayWidth + 'px';
+            this.progressCanvas.canvas.style.height = '60px';
+            this.progressCanvas.canvas.style.pointerEvents = 'none';
+            
+            // 获取上下文
+            this.progressCanvas.ctx = this.progressCanvas.canvas.getContext('2d');
+        } else {
+            // 使用CanvasManager创建进度条Canvas
+            const { width, height } = canvasManager.getDisplaySize();
+            
+            // 创建进度条容器
+            this.progressCanvas.container = document.createElement('div');
+            this.progressCanvas.container.style.position = 'absolute';
+            this.progressCanvas.container.style.left = '0';
+            this.progressCanvas.container.style.top = '0';
+            this.progressCanvas.container.style.width = width + 'px';
+            this.progressCanvas.container.style.height = height + 'px';
+            this.progressCanvas.container.style.pointerEvents = 'none';
+            this.progressCanvas.container.style.zIndex = '25';
+            
+            // 使用CanvasManager创建进度条Canvas
+            this.progressCanvas.canvas = canvasManager.createOffscreenCanvas(width, 60);
+            this.progressCanvas.ctx = this.progressCanvas.canvas.getContext('2d');
+        }
         
         // 添加到DOM
+        const canvas = this.engine.getCanvas();
         canvas.parentElement.appendChild(this.progressCanvas.container);
         this.progressCanvas.container.appendChild(this.progressCanvas.canvas);
         
@@ -245,10 +276,19 @@ class GameScene extends Scene {
             return;
         }
         
-        const canvas = this.engine.getCanvas();
-        const rect = canvas.getBoundingClientRect();
-        const displayWidth = rect.width;
-        const displayHeight = rect.height;
+        const canvasManager = this.engine.getCanvasManager();
+        let displayWidth, displayHeight;
+        
+        if (canvasManager) {
+            const size = canvasManager.getDisplaySize();
+            displayWidth = size.width;
+            displayHeight = size.height;
+        } else {
+            const canvas = this.engine.getCanvas();
+            const rect = canvas.getBoundingClientRect();
+            displayWidth = rect.width;
+            displayHeight = rect.height;
+        }
         
         const actualWidth = this.progressCanvas.canvas.width;
         const actualHeight = this.progressCanvas.canvas.height;
@@ -259,7 +299,12 @@ class GameScene extends Scene {
         // 保存当前状态
         this.progressCanvas.ctx.save();
         
-        // 不使用缩放，直接使用CSS像素尺寸
+        // 如果使用CanvasManager创建的Canvas，需要重置变换
+        if (canvasManager) {
+            this.progressCanvas.ctx.resetTransform();
+        }
+        
+        // 使用CSS像素尺寸
         const scaledWidth = displayWidth;
         const scaledHeight = 60; // CSS高度固定为60px
         
@@ -429,10 +474,19 @@ class GameScene extends Scene {
      * 初始化多Canvas裁剪系统
      */
     initMultiCanvasSystem() {
-        const canvas = this.engine.getCanvas();
-        const rect = canvas.getBoundingClientRect();
-        const displayWidth = rect.width;
-        const displayHeight = rect.height;
+        const canvasManager = this.engine.getCanvasManager();
+        let displayWidth, displayHeight;
+        
+        if (canvasManager) {
+            const size = canvasManager.getDisplaySize();
+            displayWidth = size.width;
+            displayHeight = size.height;
+        } else {
+            const canvas = this.engine.getCanvas();
+            const rect = canvas.getBoundingClientRect();
+            displayWidth = rect.width;
+            displayHeight = rect.height;
+        }
         
         // 计算对角线的一半作为最大分离距离，确保左右canvas能移动到画布外面
         const diagonal = Math.sqrt(displayWidth * displayWidth + displayHeight * displayHeight);
@@ -450,35 +504,58 @@ class GameScene extends Scene {
         this.effectSystem.canvi.style.pointerEvents = 'none';
         this.effectSystem.canvi.style.zIndex = '15'; // 提高z-index确保在主画布之上
         
-        // 创建左侧Canvas（用于显示）- 天组（不使用dpr，直接使用CSS像素尺寸）
-        this.effectSystem.leftCanvas = document.createElement('canvas');
-        this.effectSystem.leftCanvas.width = displayWidth;  // 使用CSS像素宽度
-        this.effectSystem.leftCanvas.height = displayHeight; // 使用CSS像素高度
-        this.effectSystem.leftCanvas.style.position = 'absolute';
-        this.effectSystem.leftCanvas.style.left = '0';
-        this.effectSystem.leftCanvas.style.top = '0';
-        this.effectSystem.leftCanvas.style.width = displayWidth + 'px';  // CSS尺寸保持不变
-        this.effectSystem.leftCanvas.style.height = displayHeight + 'px'; // CSS尺寸保持不变
-        this.effectSystem.leftCanvas.style.border = '3px solid #FFD700'; // 金色边框
-        this.effectSystem.leftCanvas.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.5)'; // 金色发光效果
-        this.effectSystem.leftCanvas.style.zIndex = '16'; // 确保在容器之上
+        // 创建左侧Canvas（用于显示）- 天组
+        if (canvasManager) {
+            // 使用CanvasManager创建Canvas
+            this.effectSystem.leftCanvas = canvasManager.createOffscreenCanvas(displayWidth, displayHeight);
+            this.effectSystem.leftCanvas.style.border = '3px solid #FFD700'; // 金色边框
+            this.effectSystem.leftCanvas.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.5)'; // 金色发光效果
+            this.effectSystem.leftCanvas.style.zIndex = '16'; // 确保在容器之上
+        } else {
+            // 传统方式创建Canvas
+            this.effectSystem.leftCanvas = document.createElement('canvas');
+            this.effectSystem.leftCanvas.width = displayWidth;
+            this.effectSystem.leftCanvas.height = displayHeight;
+            this.effectSystem.leftCanvas.style.position = 'absolute';
+            this.effectSystem.leftCanvas.style.left = '0';
+            this.effectSystem.leftCanvas.style.top = '0';
+            this.effectSystem.leftCanvas.style.width = displayWidth + 'px';
+            this.effectSystem.leftCanvas.style.height = displayHeight + 'px';
+            this.effectSystem.leftCanvas.style.border = '3px solid #FFD700';
+            this.effectSystem.leftCanvas.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.5)';
+            this.effectSystem.leftCanvas.style.zIndex = '16';
+        }
         
-        // 创建右侧Canvas（用于显示）- 地组（不使用dpr，直接使用CSS像素尺寸）
-        this.effectSystem.rightCanvas = document.createElement('canvas');
-        this.effectSystem.rightCanvas.width = displayWidth;  // 使用CSS像素宽度
-        this.effectSystem.rightCanvas.height = displayHeight; // 使用CSS像素高度
-        this.effectSystem.rightCanvas.style.position = 'absolute';
-        this.effectSystem.rightCanvas.style.left = '0';
-        this.effectSystem.rightCanvas.style.top = '0';
-        this.effectSystem.rightCanvas.style.width = displayWidth + 'px';  // CSS尺寸保持不变
-        this.effectSystem.rightCanvas.style.height = displayHeight + 'px'; // CSS尺寸保持不变
-        this.effectSystem.rightCanvas.style.border = '3px solid #FF6347'; // 红色边框
-        this.effectSystem.rightCanvas.style.boxShadow = '0 0 20px rgba(255, 99, 71, 0.5)'; // 红色发光效果
-        this.effectSystem.rightCanvas.style.zIndex = '16'; // 确保在容器之上
+        // 创建右侧Canvas（用于显示）- 地组
+        if (canvasManager) {
+            // 使用CanvasManager创建Canvas
+            this.effectSystem.rightCanvas = canvasManager.createOffscreenCanvas(displayWidth, displayHeight);
+            this.effectSystem.rightCanvas.style.border = '3px solid #FF6347'; // 红色边框
+            this.effectSystem.rightCanvas.style.boxShadow = '0 0 20px rgba(255, 99, 71, 0.5)'; // 红色发光效果
+            this.effectSystem.rightCanvas.style.zIndex = '16'; // 确保在容器之上
+        } else {
+            // 传统方式创建Canvas
+            this.effectSystem.rightCanvas = document.createElement('canvas');
+            this.effectSystem.rightCanvas.width = displayWidth;
+            this.effectSystem.rightCanvas.height = displayHeight;
+            this.effectSystem.rightCanvas.style.position = 'absolute';
+            this.effectSystem.rightCanvas.style.left = '0';
+            this.effectSystem.rightCanvas.style.top = '0';
+            this.effectSystem.rightCanvas.style.width = displayWidth + 'px';
+            this.effectSystem.rightCanvas.style.height = displayHeight + 'px';
+            this.effectSystem.rightCanvas.style.border = '3px solid #FF6347';
+            this.effectSystem.rightCanvas.style.boxShadow = '0 0 20px rgba(255, 99, 71, 0.5)';
+            this.effectSystem.rightCanvas.style.zIndex = '16';
+        }
         
-        // 创建OffscreenCanvas（用于离屏渲染）- 使用CSS像素尺寸
-        this.effectSystem.offscreenLeftCanvas = new OffscreenCanvas(displayWidth, displayHeight);
-        this.effectSystem.offscreenRightCanvas = new OffscreenCanvas(displayWidth, displayHeight);
+        // 创建OffscreenCanvas（用于离屏渲染）
+        if (canvasManager) {
+            this.effectSystem.offscreenLeftCanvas = canvasManager.createOffscreenCanvas(displayWidth, displayHeight);
+            this.effectSystem.offscreenRightCanvas = canvasManager.createOffscreenCanvas(displayWidth, displayHeight);
+        } else {
+            this.effectSystem.offscreenLeftCanvas = new OffscreenCanvas(displayWidth, displayHeight);
+            this.effectSystem.offscreenRightCanvas = new OffscreenCanvas(displayWidth, displayHeight);
+        }
         
         // 获取上下文
         this.effectSystem.leftCtx = this.effectSystem.leftCanvas.getContext('2d');
@@ -487,7 +564,8 @@ class GameScene extends Scene {
         this.effectSystem.offscreenRightCtx = this.effectSystem.offscreenRightCanvas.getContext('2d');
         
         // 添加到DOM - 注意添加顺序
-        canvas.parentElement.appendChild(this.effectSystem.canvi);
+        const mainCanvas = this.engine.getCanvas();
+        mainCanvas.parentElement.appendChild(this.effectSystem.canvi);
         this.effectSystem.canvi.appendChild(this.effectSystem.leftCanvas);
         this.effectSystem.canvi.appendChild(this.effectSystem.rightCanvas);
         
@@ -500,71 +578,6 @@ class GameScene extends Scene {
         this.effectSystem.isMultiCanvasInitialized = true;
         
         console.log('多Canvas裁剪系统初始化完成，包含OffscreenCanvas');
-    }
-    
-    /**
-     * 渲染初始Canvas内容
-     */
-    renderInitialCanvasContent() {
-        if (!this.effectSystem.leftCtx || !this.effectSystem.rightCtx) {
-            return;
-        }
-        
-        const actualWidth = this.effectSystem.leftCanvas.width;
-        const actualHeight = this.effectSystem.leftCanvas.height;
-        
-        // 清除Canvas - 使用CSS像素尺寸
-        this.effectSystem.leftCtx.clearRect(0, 0, actualWidth, actualHeight);
-        this.effectSystem.rightCtx.clearRect(0, 0, actualWidth, actualHeight);
-        
-        // 使用备份的画布内容（如果可用），否则使用主画布
-        if (this.canvasBackup.isBackupReady && this.canvasBackup.backupCanvas) {
-            // 左侧Canvas完整显示备份画布内容
-            this.effectSystem.leftCtx.drawImage(this.canvasBackup.backupCanvas, 0, 0);
-            
-            // 右侧Canvas完整显示备份画布内容
-            this.effectSystem.rightCtx.drawImage(this.canvasBackup.backupCanvas, 0, 0);
-            
-            console.log('成功复制备份画布内容到Canvas');
-        } else {
-            // 如果备份不可用，尝试获取主画布内容
-            const mainCanvas = this.engine.getCanvas();
-            if (mainCanvas) {
-                // 左侧Canvas完整显示主画布内容
-                this.effectSystem.leftCtx.drawImage(mainCanvas, 0, 0);
-                
-                // 右侧Canvas完整显示主画布内容
-                this.effectSystem.rightCtx.drawImage(mainCanvas, 0, 0);
-                
-                console.log('备份不可用，使用主画布内容');
-            } else {
-                // 如果主画布也不可用，绘制一个测试背景
-                this.effectSystem.leftCtx.fillStyle = '#228B22';
-                this.effectSystem.leftCtx.fillRect(0, 0, actualWidth, actualHeight);
-                this.effectSystem.rightCtx.fillStyle = '#228B22';
-                this.effectSystem.rightCtx.fillRect(0, 0, actualWidth, actualHeight);
-                
-                console.log('主画布不可用，使用测试背景');
-            }
-        }
-        
-        // 添加半透明遮罩和标签 - 使用CSS像素尺寸
-        this.effectSystem.leftCtx.fillStyle = 'rgba(255, 215, 0, 0.3)';
-        this.effectSystem.leftCtx.fillRect(0, 0, actualWidth, actualHeight);
-        
-        this.effectSystem.rightCtx.fillStyle = 'rgba(255, 99, 71, 0.3)';
-        this.effectSystem.rightCtx.fillRect(0, 0, actualWidth, actualHeight);
-        
-        // 添加标签文字
-        this.effectSystem.leftCtx.fillStyle = '#FFD700';
-        this.effectSystem.leftCtx.font = 'bold 24px "Microsoft YaHei", sans-serif';
-        this.effectSystem.leftCtx.textAlign = 'center';
-        this.effectSystem.leftCtx.fillText('天组', actualWidth / 2, actualHeight / 2);
-        
-        this.effectSystem.rightCtx.fillStyle = '#FF6347';
-        this.effectSystem.rightCtx.font = 'bold 24px "Microsoft YaHei", sans-serif';
-        this.effectSystem.rightCtx.textAlign = 'center';
-        this.effectSystem.rightCtx.fillText('地组', actualWidth / 2, actualHeight / 2);
     }
 
     /**
@@ -957,62 +970,6 @@ class GameScene extends Scene {
     }
 
     /**
-     * 清理多Canvas系统
-     */
-    cleanupMultiCanvas() {
-        if (this.effectSystem.canvi) {
-            // 不删除Canvas，而是隐藏它们并重置内容
-            this.effectSystem.canvi.style.zIndex = '5';
-            
-            // 清除Canvas内容但保留可见性，重新复制主画布内容
-            if (this.effectSystem.leftCtx && this.effectSystem.leftCanvas) {
-                const actualWidth = this.effectSystem.leftCanvas.width;
-                const actualHeight = this.effectSystem.leftCanvas.height;
-                this.effectSystem.leftCtx.clearRect(0, 0, actualWidth, actualHeight);
-                
-                // 重新复制源画布内容（优先使用备份）
-                const sourceCanvas = this.canvasBackup.isBackupReady && this.canvasBackup.backupCanvas ?
-                    this.canvasBackup.backupCanvas : this.engine.getCanvas();
-                this.effectSystem.leftCtx.drawImage(sourceCanvas, 0, 0);
-                
-                // 添加半透明遮罩和标签 - 使用实际像素尺寸
-                this.effectSystem.leftCtx.fillStyle = 'rgba(255, 215, 0, 0.2)';
-                this.effectSystem.leftCtx.fillRect(0, 0, actualWidth, actualHeight);
-                this.effectSystem.leftCtx.fillStyle = '#FFD700';
-                this.effectSystem.leftCtx.font = 'bold 24px "Microsoft YaHei", sans-serif';
-                this.effectSystem.leftCtx.textAlign = 'center';
-                this.effectSystem.leftCtx.fillText('天组', actualWidth / 2, actualHeight / 2);
-            }
-            
-            if (this.effectSystem.rightCtx && this.effectSystem.rightCanvas) {
-                const actualWidth = this.effectSystem.rightCanvas.width;
-                const actualHeight = this.effectSystem.rightCanvas.height;
-                this.effectSystem.rightCtx.clearRect(0, 0, actualWidth, actualHeight);
-                
-                // 重新复制源画布内容（优先使用备份）
-                const sourceCanvas = this.canvasBackup.isBackupReady && this.canvasBackup.backupCanvas ?
-                    this.canvasBackup.backupCanvas : this.engine.getCanvas();
-                this.effectSystem.rightCtx.drawImage(sourceCanvas, 0, 0);
-                
-                // 添加半透明遮罩和标签 - 使用实际像素尺寸
-                this.effectSystem.rightCtx.fillStyle = 'rgba(255, 99, 71, 0.2)';
-                this.effectSystem.rightCtx.fillRect(0, 0, actualWidth, actualHeight);
-                this.effectSystem.rightCtx.fillStyle = '#FF6347';
-                this.effectSystem.rightCtx.font = 'bold 24px "Microsoft YaHei", sans-serif';
-                this.effectSystem.rightCtx.textAlign = 'center';
-                this.effectSystem.rightCtx.fillText('地组', actualWidth / 2, actualHeight / 2);
-            }
-            
-            // 重置特效状态
-            this.effectSystem.isActive = false;
-            this.effectSystem.currentEffect = null;
-            this.effectSystem.particles = [];
-            
-            console.log('多Canvas系统已重置，保持可见状态');
-        }
-    }
-
-    /**
      * 创建切分粒子效果
      * @param {Object} cutLine - 切分线对象
      */
@@ -1107,52 +1064,6 @@ class GameScene extends Scene {
         this.effectSystem.isActive = false;
         this.effectSystem.currentEffect = null;
         this.effectSystem.particles = [];
-        
-        // 确保Canvas保持可见状态
-        if (this.effectSystem.canvi) {
-            this.effectSystem.canvi.style.zIndex = '5';
-            
-            // 重新绘制初始状态，复制主画布内容
-            if (this.effectSystem.leftCtx && this.effectSystem.leftCanvas) {
-                const actualWidth = this.effectSystem.leftCanvas.width;
-                const actualHeight = this.effectSystem.leftCanvas.height;
-                this.effectSystem.leftCtx.clearRect(0, 0, actualWidth, actualHeight);
-                
-                // 重新复制源画布内容（优先使用备份）
-                const sourceCanvas = this.canvasBackup.isBackupReady && this.canvasBackup.backupCanvas ?
-                    this.canvasBackup.backupCanvas : this.engine.getCanvas();
-                this.effectSystem.leftCtx.drawImage(sourceCanvas, 0, 0);
-                
-                // 添加半透明遮罩和标签 - 使用实际像素尺寸
-                this.effectSystem.leftCtx.fillStyle = 'rgba(255, 215, 0, 0.2)';
-                this.effectSystem.leftCtx.fillRect(0, 0, actualWidth, actualHeight);
-                this.effectSystem.leftCtx.fillStyle = '#FFD700';
-                this.effectSystem.leftCtx.font = 'bold 24px "Microsoft YaHei", sans-serif';
-                this.effectSystem.leftCtx.textAlign = 'center';
-                this.effectSystem.leftCtx.fillText('天组', actualWidth / 2, actualHeight / 2);
-            }
-            
-            if (this.effectSystem.rightCtx && this.effectSystem.rightCanvas) {
-                const actualWidth = this.effectSystem.rightCanvas.width;
-                const actualHeight = this.effectSystem.rightCanvas.height;
-                this.effectSystem.rightCtx.clearRect(0, 0, actualWidth, actualHeight);
-                
-                // 重新复制源画布内容（优先使用备份）
-                const sourceCanvas = this.canvasBackup.isBackupReady && this.canvasBackup.backupCanvas ?
-                    this.canvasBackup.backupCanvas : this.engine.getCanvas();
-                this.effectSystem.rightCtx.drawImage(sourceCanvas, 0, 0);
-                
-                // 添加半透明遮罩和标签 - 使用实际像素尺寸
-                this.effectSystem.rightCtx.fillStyle = 'rgba(255, 99, 71, 0.2)';
-                this.effectSystem.rightCtx.fillRect(0, 0, actualWidth, actualHeight);
-                this.effectSystem.rightCtx.fillStyle = '#FF6347';
-                this.effectSystem.rightCtx.font = 'bold 24px "Microsoft YaHei", sans-serif';
-                this.effectSystem.rightCtx.textAlign = 'center';
-                this.effectSystem.rightCtx.fillText('地组', actualWidth / 2, actualHeight / 2);
-            }
-            
-            console.log('特效动画完成，Canvas恢复到初始可见状态');
-        }
     }
 
     doStalksAlgorithm() {
@@ -1318,14 +1229,24 @@ class GameScene extends Scene {
         const stalkCount = 49;
 
         // 获取画布的实际显示尺寸（CSS像素）
-        const canvas = this.engine.getCanvas();
-        const rect = canvas.getBoundingClientRect();
-        const displayWidth = rect.width;
-        const displayHeight = rect.height;
-
-        // 获取画布的实际绘制尺寸（CSS像素尺寸）
-        const actualWidth = canvas.width;
-        const actualHeight = canvas.height;
+        const canvasManager = this.engine.getCanvasManager();
+        let displayWidth, displayHeight, actualWidth, actualHeight;
+        
+        if (canvasManager) {
+            const size = canvasManager.getDisplaySize();
+            displayWidth = size.width;
+            displayHeight = size.height;
+            const actualSize = canvasManager.getActualSize();
+            actualWidth = actualSize.width;
+            actualHeight = actualSize.height;
+        } else {
+            const canvas = this.engine.getCanvas();
+            const rect = canvas.getBoundingClientRect();
+            displayWidth = rect.width;
+            displayHeight = rect.height;
+            actualWidth = canvas.width;
+            actualHeight = canvas.height;
+        }
 
         const padding = 30;
 
@@ -1353,12 +1274,24 @@ class GameScene extends Scene {
     }
 
     createUI() {
-        const canvas = this.engine.getCanvas();
+        const canvasManager = this.engine.getCanvasManager();
+        let canvasWidth, canvasHeight;
+        
+        if (canvasManager) {
+            const size = canvasManager.getDisplaySize();
+            canvasWidth = size.width;
+            canvasHeight = size.height;
+        } else {
+            const canvas = this.engine.getCanvas();
+            canvasWidth = canvas.width;
+            canvasHeight = canvas.height;
+        }
+        
         const ctx = this.engine.getContext();
 
         // 创建设置按钮
         this.settingsButton = new ImageButton(
-            canvas.width - 60,
+            canvasWidth - 60,
             20,
             50,
             30,
@@ -1369,7 +1302,7 @@ class GameScene extends Scene {
 
         // 创建设置面板
         this.settingsPanel = new SettingsPanel(
-            canvas.width - 220,
+            canvasWidth - 220,
             10,
             200,
             150
@@ -1378,8 +1311,8 @@ class GameScene extends Scene {
         // 创建游戏信息面板
         this.gameInfoPanel = new GameInfoPanel(
             10,
-            canvas.height - 100,
-            canvas.width - 20,
+            canvasHeight - 100,
+            canvasWidth - 20,
             80
         );
     }
@@ -1623,14 +1556,24 @@ class GameScene extends Scene {
         }
 
         // 获取画布的实际显示尺寸（CSS像素）
-        const canvas = this.engine.getCanvas();
-        const rect = canvas.getBoundingClientRect();
-        const displayWidth = rect.width;
-        const displayHeight = rect.height;
-
-        // 获取画布的实际绘制尺寸（CSS像素尺寸）
-        const actualWidth = canvas.width;
-        const actualHeight = canvas.height;
+        const canvasManager = this.engine.getCanvasManager();
+        let displayWidth, displayHeight, actualWidth, actualHeight;
+        
+        if (canvasManager) {
+            const size = canvasManager.getDisplaySize();
+            displayWidth = size.width;
+            displayHeight = size.height;
+            const actualSize = canvasManager.getActualSize();
+            actualWidth = actualSize.width;
+            actualHeight = actualSize.height;
+        } else {
+            const canvas = this.engine.getCanvas();
+            const rect = canvas.getBoundingClientRect();
+            displayWidth = rect.width;
+            displayHeight = rect.height;
+            actualWidth = canvas.width;
+            actualHeight = canvas.height;
+        }
 
         // 计算中心点（使用CSS像素坐标，确保特效线正确经过中心）
         const centerX = displayWidth / 2;
@@ -2031,11 +1974,22 @@ class ResultScene extends Scene {
     }
 
     createUI() {
-        const canvas = this.engine.getCanvas();
+        const canvasManager = this.engine.getCanvasManager();
+        let canvasWidth, canvasHeight;
+        
+        if (canvasManager) {
+            const size = canvasManager.getDisplaySize();
+            canvasWidth = size.width;
+            canvasHeight = size.height;
+        } else {
+            const canvas = this.engine.getCanvas();
+            canvasWidth = canvas.width;
+            canvasHeight = canvas.height;
+        }
 
         // 创建卦象显示组件（增加高度以适应本卦和变卦同时显示）
         this.guaDisplay = new GuaDisplay(
-            canvas.width / 2 - 150,
+            canvasWidth / 2 - 150,
             80,
             300,
             280
@@ -2043,8 +1997,8 @@ class ResultScene extends Scene {
 
         // 创建重新开始按钮
         this.restartButton = new Button(
-            canvas.width / 2 - 110,
-            canvas.height - 80,
+            canvasWidth / 2 - 110,
+            canvasHeight - 80,
             100,
             40,
             '重新占卜',
@@ -2053,8 +2007,8 @@ class ResultScene extends Scene {
 
         // 创建新的占卜按钮
         this.newGameButton = new Button(
-            canvas.width / 2 + 10,
-            canvas.height - 80,
+            canvasWidth / 2 + 10,
+            canvasHeight - 80,
             100,
             40,
             '新的占卜',
@@ -2222,12 +2176,23 @@ class LogsScene extends Scene {
     }
 
     createUI() {
-        const canvas = this.engine.getCanvas();
+        const canvasManager = this.engine.getCanvasManager();
+        let canvasWidth;
+        
+        if (canvasManager) {
+            const size = canvasManager.getDisplaySize();
+            canvasWidth = size.width;
+            canvasHeight = size.height;
+        } else {
+            const canvas = this.engine.getCanvas();
+            canvasWidth = canvas.width;
+            canvasHeight = canvas.height;
+        }
 
         // 创建清空日志按钮
         this.clearButton = new Button(
-            canvas.width / 2 - 110,
-            canvas.height - 100,
+            canvasWidth / 2 - 110,
+            canvasHeight - 100,
             100,
             40,
             '清空日志',
@@ -2236,8 +2201,8 @@ class LogsScene extends Scene {
 
         // 创建返回按钮
         this.backButton = new Button(
-            canvas.width / 2 + 10,
-            canvas.height - 100,
+            canvasWidth / 2 + 10,
+            canvasHeight - 100,
             100,
             40,
             '返回游戏',
