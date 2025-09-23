@@ -2200,48 +2200,48 @@ class ResultScene extends Scene {
         if (this.newGameButton) this.newGameButton.render(ctx);
 
         // 绘制卦象信息（使用缓存的数据，避免重复计算）
-        if (this.yaos.length > 0 && this.guaData) {
-            // 绘制卦名和解释
-            ctx.fillStyle = '#fff';
-            ctx.font = '1rem "Microsoft YaHei", sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText(this.guaData.interpretation, width / 2, height - 180);
+        // if (this.yaos.length > 0 && this.guaData) {
+        //     // 绘制卦名和解释
+        //     ctx.fillStyle = '#fff';
+        //     ctx.font = '1rem "Microsoft YaHei", sans-serif';
+        //     ctx.textAlign = 'center';
+        //     ctx.fillText(this.guaData.interpretation, width / 2, height - 180);
 
-            // 绘制卦象
-            ctx.fillStyle = '#FFD700';
-            ctx.font = '0.9rem "Microsoft YaHei", sans-serif';
-            ctx.fillText(this.guaData.symbolism, width / 2, height - 150);
+        //     // 绘制卦象
+        //     ctx.fillStyle = '#FFD700';
+        //     ctx.font = '0.9rem "Microsoft YaHei", sans-serif';
+        //     ctx.fillText(this.guaData.symbolism, width / 2, height - 150);
 
-            // 绘制建议
-            ctx.fillStyle = '#90EE90';
-            ctx.font = '0.9rem "Microsoft YaHei", sans-serif';
-            ctx.fillText('建议：' + this.guaData.advice, width / 2, height - 120);
+        //     // 绘制建议
+        //     ctx.fillStyle = '#90EE90';
+        //     ctx.font = '0.9rem "Microsoft YaHei", sans-serif';
+        //     ctx.fillText('建议：' + this.guaData.advice, width / 2, height - 120);
 
-            // 绘制爻辞标题
-            ctx.fillStyle = '#FFD700';
-            ctx.font = 'bold 0.9rem "Microsoft YaHei", sans-serif';
-            ctx.fillText('爻辞：', width / 2, height - 80);
+        //     // 绘制爻辞标题
+        //     ctx.fillStyle = '#FFD700';
+        //     ctx.font = 'bold 0.9rem "Microsoft YaHei", sans-serif';
+        //     ctx.fillText('爻辞：', width / 2, height - 80);
 
-            // 绘制六爻爻辞
-            ctx.fillStyle = '#fff';
-            ctx.font = '0.8rem "Microsoft YaHei", sans-serif';
+        //     // 绘制六爻爻辞
+        //     ctx.fillStyle = '#fff';
+        //     ctx.font = '0.8rem "Microsoft YaHei", sans-serif';
 
-            // 爻辞数组（示例，实际应该从卦象数据中获取）
-            const yaoTexts = [
-                `初爻：${this.yaos[0] === 9 || this.yaos[0] === 7 ? '阳' : '阴'}爻`,
-                `二爻：${this.yaos[1] === 9 || this.yaos[1] === 7 ? '阳' : '阴'}爻`,
-                `三爻：${this.yaos[2] === 9 || this.yaos[2] === 7 ? '阳' : '阴'}爻`,
-                `四爻：${this.yaos[3] === 9 || this.yaos[3] === 7 ? '阳' : '阴'}爻`,
-                `五爻：${this.yaos[4] === 9 || this.yaos[4] === 7 ? '阳' : '阴'}爻`,
-                `上爻：${this.yaos[5] === 9 || this.yaos[5] === 7 ? '阳' : '阴'}爻`
-            ];
+        //     // 爻辞数组（示例，实际应该从卦象数据中获取）
+        //     const yaoTexts = [
+        //         `初爻：${this.yaos[0] === 9 || this.yaos[0] === 7 ? '阳' : '阴'}爻`,
+        //         `二爻：${this.yaos[1] === 9 || this.yaos[1] === 7 ? '阳' : '阴'}爻`,
+        //         `三爻：${this.yaos[2] === 9 || this.yaos[2] === 7 ? '阳' : '阴'}爻`,
+        //         `四爻：${this.yaos[3] === 9 || this.yaos[3] === 7 ? '阳' : '阴'}爻`,
+        //         `五爻：${this.yaos[4] === 9 || this.yaos[4] === 7 ? '阳' : '阴'}爻`,
+        //         `上爻：${this.yaos[5] === 9 || this.yaos[5] === 7 ? '阳' : '阴'}爻`
+        //     ];
 
-            // 绘制每个爻的信息
-            for (let i = 0; i < 6; i++) {
-                const y = height - 50 + i * 15;
-                ctx.fillText(yaoTexts[i], width / 2, y);
-            }
-        }
+        //     // 绘制每个爻的信息
+        //     for (let i = 0; i < 6; i++) {
+        //         const y = height - 50 + i * 15;
+        //         ctx.fillText(yaoTexts[i], width / 2, y);
+        //     }
+        // }
     }
 
     // restartGame 方法已在前面定义，这里删除重复定义
