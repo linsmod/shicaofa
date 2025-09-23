@@ -1366,18 +1366,15 @@ class GameScene extends Scene {
         const ctx = this.engine.getContext();
 
         // 创建设置按钮
-        this.settingsButton = new Button(
+        this.settingsButton = new ImageButton(
             canvas.width - 60,
             20,
             50,
             30,
-            '设置',
+            'setting.png',
             () => this.toggleSettings()
         );
-        this.settingsButton.setBackgroundColor('rgba(0, 0, 0, 0.7)');
-        this.settingsButton.setTextColor('#FFD700');
-        this.settingsButton.setBorderColor('#FFD700');
-        this.settingsButton.setBorderWidth(2);
+        this.settingsButton.setMaintainAspectRatio(true);
 
         // 创建重新开始按钮
         this.restartButton = new Button(
@@ -1422,8 +1419,8 @@ class GameScene extends Scene {
         this.registerUIElement(this.restartButton);
         this.registerUIElement(this.logsButton);
         
-        // 注册面板（如果可见）
-        if (this.settingsPanel && this.settingsPanel.visible) {
+        // 始终注册设置面板，这样关闭按钮才能正常工作
+        if (this.settingsPanel) {
             this.registerUIElement(this.settingsPanel);
         }
         if (this.gameInfoPanel) {

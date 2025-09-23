@@ -187,6 +187,133 @@ class Button extends UIElement {
 }
 
 /**
+ * 图片按钮组件
+ */
+class ImageButton extends Button {
+    constructor(x, y, width, height, imageSrc, onClick) {
+        super(x, y, width, height, '', onClick);
+        this.imageSrc = imageSrc;
+        this.image = new Image();
+        this.image.onload = () => {
+            this.loaded = true;
+            // 计算图片的原始宽高比
+            this.imageAspectRatio = this.image.width / this.image.height;
+        };
+        this.image.onerror = () => {
+            console.error(`Failed to load image: ${imageSrc}`);
+        };
+        this.image.src = imageSrc;
+        this.loaded = false;
+        this.imageScale = 1.0;
+        this.imageOffsetX = 0;
+        this.imageOffsetY = 0;
+        this.maintainAspectRatio = true; // 默认保持宽高比
+        // 图片按钮默认使用透明背景
+        this.backgroundColor = 'transparent';
+    }
+
+    setImageScale(scale) {
+        this.imageScale = scale;
+    }
+
+    setImageOffset(x, y) {
+        this.imageOffsetX = x;
+        this.imageOffsetY = y;
+    }
+
+    setMaintainAspectRatio(maintain) {
+        this.maintainAspectRatio = maintain;
+    }
+
+    render(ctx) {
+        if (!this.visible || !this.enabled) return;
+
+        // 计算绘制位置（按下时添加位移）
+        const offsetX = this.isPressed ? 2 : 0;
+        const offsetY = this.isPressed ? 2 : 0;
+        const drawX = this.x + offsetX;
+        const drawY = this.y + offsetY;
+
+        // 绘制按钮背景
+        if (this.backgroundColor.startsWith('linear-gradient')) {
+            // 解析渐变字符串中的颜色值
+            const gradientMatch = this.backgroundColor.match(/linear-gradient\([^,]+,\s*([^,]+),\s*([^)]+)\)/);
+            if (gradientMatch) {
+                const color1 = gradientMatch[1].trim();
+                const color2 = gradientMatch[2].trim();
+                
+                const gradient = ctx.createLinearGradient(drawX, drawY, drawX, drawY + this.height);
+                if (this.isPressed) {
+                    gradient.addColorStop(0, color2);
+                    gradient.addColorStop(1, color1);
+                } else {
+                    gradient.addColorStop(0, color1);
+                    gradient.addColorStop(1, color2);
+                }
+                ctx.fillStyle = gradient;
+            } else {
+                // 如果解析失败，使用默认颜色
+                const gradient = ctx.createLinearGradient(drawX, drawY, drawX, drawY + this.height);
+                if (this.isPressed) {
+                    gradient.addColorStop(0, '#A0522D');
+                    gradient.addColorStop(1, '#8B4513');
+                } else {
+                    gradient.addColorStop(0, '#8B4513');
+                    gradient.addColorStop(1, '#A0522D');
+                }
+                ctx.fillStyle = gradient;
+            }
+        } else {
+            ctx.fillStyle = this.backgroundColor;
+        }
+
+        // 绘制圆角矩形
+        this.drawRoundedRect(ctx, drawX, drawY, this.width, this.height, 25);
+
+        // 如果图片已加载，绘制图片
+        if (this.loaded && this.image.complete) {
+            if (this.maintainAspectRatio && this.imageAspectRatio) {
+                // 保持宽高比，计算适合的尺寸
+                const buttonAspectRatio = this.width / this.height;
+                
+                let drawWidth, drawHeight;
+                if (this.imageAspectRatio > buttonAspectRatio) {
+                    // 图片更宽，以宽度为准
+                    drawWidth = this.width * this.imageScale;
+                    drawHeight = drawWidth / this.imageAspectRatio;
+                } else {
+                    // 图片更高，以高度为准
+                    drawHeight = this.height * this.imageScale;
+                    drawWidth = drawHeight * this.imageAspectRatio;
+                }
+                
+                const imgX = drawX + (this.width - drawWidth) / 2 + this.imageOffsetX;
+                const imgY = drawY + (this.height - drawHeight) / 2 + this.imageOffsetY;
+                
+                ctx.drawImage(this.image, imgX, imgY, drawWidth, drawHeight);
+            } else {
+                // 不保持宽高比，拉伸填充
+                const scaledWidth = this.width * this.imageScale;
+                const scaledHeight = this.height * this.imageScale;
+                const imgX = drawX + (this.width - scaledWidth) / 2 + this.imageOffsetX;
+                const imgY = drawY + (this.height - scaledHeight) / 2 + this.imageOffsetY;
+                
+                ctx.drawImage(this.image, imgX, imgY, scaledWidth, scaledHeight);
+            }
+        } else {
+            // 如果图片未加载，显示占位符
+            ctx.fillStyle = this.textColor;
+            ctx.font = `${this.fontWeight} ${this.fontSize} "Microsoft YaHei", sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('加载中...', drawX + this.width / 2, drawY + this.height / 2);
+        }
+    }
+
+    // 其他方法继承自Button类
+}
+
+/**
  * 设置面板组件
  */
 class SettingsPanel extends UIElement {
@@ -196,9 +323,8 @@ class SettingsPanel extends UIElement {
         this.title = '设置';
         this.showDotsChecked = true;
         this.showLogsChecked = false;
-        this.closeButton = new Button(x + width - 30, y, 30, 20, '×', () => this.setVisible(false));
-        this.closeButton.setFontSize('1.2rem');
-        this.closeButton.setTextColor('#FFD700');
+        this.closeButton = new ImageButton(x + width - 35, y + 5, 32, 32, 'close.png', () => this.setVisible(false));
+        this.closeButton.setMaintainAspectRatio(true);
     }
 
     render(ctx) {
@@ -277,7 +403,39 @@ class SettingsPanel extends UIElement {
     }
 
     isPointInside(x, y) {
-        return super.isPointInside(x, y) && this.visible;
+        // 检查是否在设置面板内
+        const panelInside = super.isPointInside(x, y) && this.visible;
+        
+        // 如果点击的是关闭按钮，即使面板隐藏也要处理
+        if (this.closeButton && this.closeButton.isPointInside(x, y)) {
+            return true;
+        }
+        
+        return panelInside;
+    }
+    
+    // 处理鼠标按下事件
+    handleMouseDown(x, y) {
+        // 检查是否点击了关闭按钮
+        if (this.closeButton && this.closeButton.isPointInside(x, y)) {
+            this.closeButton.handleMouseDown(x, y);
+            return true;
+        }
+        
+        // 否则按原来的逻辑处理
+        return super.handleMouseDown(x, y);
+    }
+    
+    // 处理鼠标释放事件
+    handleMouseUp(x, y) {
+        // 检查是否点击了关闭按钮
+        if (this.closeButton && this.closeButton.isPointInside(x, y)) {
+            this.closeButton.handleMouseUp(x, y);
+            return true;
+        }
+        
+        // 否则按原来的逻辑处理
+        return super.handleMouseUp(x, y);
     }
 }
 
@@ -575,6 +733,7 @@ class ProgressBar extends UIElement {
 // 导出UI组件到全局作用域
 if (typeof window !== 'undefined') {
     window.Button = Button;
+    window.ImageButton = ImageButton;
     window.SettingsPanel = SettingsPanel;
     window.GameInfoPanel = GameInfoPanel;
     window.GuaDisplay = GuaDisplay;
