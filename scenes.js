@@ -16,7 +16,6 @@ class StartScene extends Scene {
     init() {
         this.createUI();
         this.registerUIElements();
-        this.setupEventListeners();
     }
 
     createUI() {
@@ -38,12 +37,6 @@ class StartScene extends Scene {
     registerUIElements() {
         // 注册开始按钮
         this.registerUIElement(this.startButton);
-    }
-
-    setupEventListeners() {
-        // 新的事件系统已经在游戏引擎主循环中处理，这里不需要添加原生事件监听
-        // 但可以保留一些特殊的事件监听，比如键盘事件
-        window.addEventListener('keydown', (e) => this.handleKeyDown(e));
     }
 
     /**
@@ -172,8 +165,6 @@ class GameScene extends Scene {
         this.settingsPanel = null;
         this.gameInfoPanel = null;
         this.settingsButton = null;
-        this.restartButton = null;
-        this.logsButton = null;
     }
 
     init() {
@@ -183,7 +174,6 @@ class GameScene extends Scene {
         this.initProgressCanvas();
         this.createUI();
         this.registerUIElements();
-        this.setupEventListeners();
         this.updateDisplay();
     }
 
@@ -1376,26 +1366,6 @@ class GameScene extends Scene {
         );
         this.settingsButton.setMaintainAspectRatio(true);
 
-        // 创建重新开始按钮
-        this.restartButton = new Button(
-            20,
-            canvas.height - 60,
-            100,
-            40,
-            '重新开始',
-            () => this.restartGame()
-        );
-
-        // 创建查看日志按钮
-        this.logsButton = new Button(
-            240,
-            canvas.height - 60,
-            100,
-            40,
-            '查看日志',
-            () => this.showLogs()
-        );
-
         // 创建设置面板
         this.settingsPanel = new SettingsPanel(
             canvas.width - 220,
@@ -1416,8 +1386,6 @@ class GameScene extends Scene {
     registerUIElements() {
         // 注册所有按钮
         this.registerUIElement(this.settingsButton);
-        this.registerUIElement(this.restartButton);
-        this.registerUIElement(this.logsButton);
         
         // 始终注册设置面板，这样关闭按钮才能正常工作
         if (this.settingsPanel) {
@@ -1426,17 +1394,6 @@ class GameScene extends Scene {
         if (this.gameInfoPanel) {
             this.registerUIElement(this.gameInfoPanel);
         }
-    }
-
-    setupEventListeners() {
-        // 新的事件系统已经在游戏引擎主循环中处理，这里不需要添加原生事件监听
-        // 但可以保留一些特殊的事件监听，比如键盘事件
-        this.engine.getCanvas().addEventListener('keydown', (e) => this.handleKeyDown(e));
-        
-        // 触摸事件暂时保留，因为需要特殊的处理
-        this.engine.getCanvas().addEventListener('touchstart', (e) => this.handleTouchStart(e));
-        this.engine.getCanvas().addEventListener('touchmove', (e) => this.handleTouchMove(e));
-        this.engine.getCanvas().addEventListener('touchend', (e) => this.handleTouchEnd(e));
     }
 
     /**
@@ -1629,6 +1586,13 @@ class GameScene extends Scene {
         // 更新游戏特定的逻辑
         if (this.effectSystem.isActive) {
             this.updateEffects(deltaTime);
+        }
+
+        if(this.settingsPanel.visible){
+            this.sceneManager.setDialog(this.settingsPanel);
+        }
+        else{
+            this.sceneManager.closeDialog(this.settingsPanel);
         }
         
         // 更新蓍草动画

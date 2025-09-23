@@ -314,9 +314,19 @@ class ImageButton extends Button {
 }
 
 /**
+ * 模态面板基类
+ */
+class ModalDialog extends UIElement {
+    constructor(x, y, width, height) {
+        super(x, y, width, height);
+        this.isModal = true; // 标记为模态面板
+    }
+}
+
+/**
  * 设置面板组件
  */
-class SettingsPanel extends UIElement {
+class SettingsPanel extends ModalDialog {
     constructor(x, y, width, height) {
         super(x, y, width, height);
         this.visible = false;
@@ -734,6 +744,7 @@ class ProgressBar extends UIElement {
 if (typeof window !== 'undefined') {
     window.Button = Button;
     window.ImageButton = ImageButton;
+    window.ModalPanel = ModalDialog;
     window.SettingsPanel = SettingsPanel;
     window.GameInfoPanel = GameInfoPanel;
     window.GuaDisplay = GuaDisplay;

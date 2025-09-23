@@ -145,6 +145,7 @@ class GameEngine {
         
         const currentScene = this.sceneManager.getCurrentScene();
         if (!currentScene) return;
+
         if(this.keyState){
             if(this.keyState.keydown){ // the event obj
                 currentScene.handleKeyDown(this.keyState.keydown);
@@ -259,10 +260,20 @@ class GameEngine {
 class SceneManager {
     constructor(engine) {
         this.engine = engine;
+        this.dialog = null;
         this.scenes = new Map();
         this.currentSceneName = null;
         this.canvasWidth = 0;
         this.canvasHeight = 0;
+    }
+
+    setDialog(dialog){
+        this.dialog = dialog;
+    }
+    closeDialog(dialog){
+        if(this.dialog == dialog){
+            this.dialog = null;
+        }
     }
 
     /**
@@ -305,6 +316,8 @@ class SceneManager {
      * @returns {Scene}
      */
     getCurrentScene() {
+        if(this.dialog)
+            return this.dialog;
         return this.currentSceneName ? this.scenes.get(this.currentSceneName) : null;
     }
 
@@ -725,6 +738,10 @@ class UIElement {
         this.enabled = true;
         this.isHovered = false;
         this.isPressed = false;
+        this.backgroundColor = '';
+    }
+    getBackgroundColor(){
+        return this.backgroundColor;
     }
 
     /**
@@ -787,6 +804,15 @@ class UIElement {
      */
     handleClick(x, y) {
         // 子类实现具体的点击逻辑
+    }
+
+    
+    handleKeyDown(e){
+        
+    }
+
+    handleKeyUp(e){
+        
     }
 
     /**
