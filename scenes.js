@@ -212,11 +212,6 @@ class GameScene extends Scene {
         const displayWidth = rect.width;
         const displayHeight = rect.height;
         
-        // 获取主canvas的实际像素尺寸（考虑设备像素比）
-        const dpr = window.devicePixelRatio || 1;
-        const actualWidth = canvas.width;
-        const actualHeight = canvas.height;
-        
         // 创建进度条容器
         this.progressCanvas.container = document.createElement('div');
         this.progressCanvas.container.style.position = 'absolute';
@@ -227,10 +222,10 @@ class GameScene extends Scene {
         this.progressCanvas.container.style.pointerEvents = 'none';
         this.progressCanvas.container.style.zIndex = '25'; // 确保在最上层
         
-        // 创建进度条Canvas
+        // 创建进度条Canvas（不使用dpr，直接使用CSS像素尺寸）
         this.progressCanvas.canvas = document.createElement('canvas');
-        this.progressCanvas.canvas.width = actualWidth;  // 使用实际像素宽度
-        this.progressCanvas.canvas.height = 60 * dpr;  // 固定高度为60像素，考虑设备像素比
+        this.progressCanvas.canvas.width = displayWidth;  // 使用CSS像素宽度
+        this.progressCanvas.canvas.height = 60;  // 固定高度为60像素
         this.progressCanvas.canvas.style.position = 'absolute';
         this.progressCanvas.canvas.style.left = '0';
         this.progressCanvas.canvas.style.top = '0';
@@ -264,9 +259,6 @@ class GameScene extends Scene {
         const displayWidth = rect.width;
         const displayHeight = rect.height;
         
-        // 获取设备像素比
-        const dpr = window.devicePixelRatio || 1;
-        
         const actualWidth = this.progressCanvas.canvas.width;
         const actualHeight = this.progressCanvas.canvas.height;
         
@@ -276,10 +268,7 @@ class GameScene extends Scene {
         // 保存当前状态
         this.progressCanvas.ctx.save();
         
-        // 缩放上下文以匹配CSS尺寸
-        this.progressCanvas.ctx.scale(dpr, dpr);
-        
-        // 计算缩放后的绘制参数
+        // 不使用缩放，直接使用CSS像素尺寸
         const scaledWidth = displayWidth;
         const scaledHeight = 60; // CSS高度固定为60px
         
@@ -454,11 +443,6 @@ class GameScene extends Scene {
         const displayWidth = rect.width;
         const displayHeight = rect.height;
         
-        // 获取主canvas的实际像素尺寸（考虑设备像素比）
-        const dpr = window.devicePixelRatio || 1;
-        const actualWidth = canvas.width;
-        const actualHeight = canvas.height;
-        
         // 计算对角线的一半作为最大分离距离，确保左右canvas能移动到画布外面
         const diagonal = Math.sqrt(displayWidth * displayWidth + displayHeight * displayHeight);
         this.effectSystem.maxSeparation = diagonal / 2;
@@ -475,10 +459,10 @@ class GameScene extends Scene {
         this.effectSystem.canvi.style.pointerEvents = 'none';
         this.effectSystem.canvi.style.zIndex = '15'; // 提高z-index确保在主画布之上
         
-        // 创建左侧Canvas（用于显示）- 天组
+        // 创建左侧Canvas（用于显示）- 天组（不使用dpr，直接使用CSS像素尺寸）
         this.effectSystem.leftCanvas = document.createElement('canvas');
-        this.effectSystem.leftCanvas.width = actualWidth;  // 使用实际像素宽度
-        this.effectSystem.leftCanvas.height = actualHeight; // 使用实际像素高度
+        this.effectSystem.leftCanvas.width = displayWidth;  // 使用CSS像素宽度
+        this.effectSystem.leftCanvas.height = displayHeight; // 使用CSS像素高度
         this.effectSystem.leftCanvas.style.position = 'absolute';
         this.effectSystem.leftCanvas.style.left = '0';
         this.effectSystem.leftCanvas.style.top = '0';
@@ -488,10 +472,10 @@ class GameScene extends Scene {
         this.effectSystem.leftCanvas.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.5)'; // 金色发光效果
         this.effectSystem.leftCanvas.style.zIndex = '16'; // 确保在容器之上
         
-        // 创建右侧Canvas（用于显示）- 地组
+        // 创建右侧Canvas（用于显示）- 地组（不使用dpr，直接使用CSS像素尺寸）
         this.effectSystem.rightCanvas = document.createElement('canvas');
-        this.effectSystem.rightCanvas.width = actualWidth;  // 使用实际像素宽度
-        this.effectSystem.rightCanvas.height = actualHeight; // 使用实际像素高度
+        this.effectSystem.rightCanvas.width = displayWidth;  // 使用CSS像素宽度
+        this.effectSystem.rightCanvas.height = displayHeight; // 使用CSS像素高度
         this.effectSystem.rightCanvas.style.position = 'absolute';
         this.effectSystem.rightCanvas.style.left = '0';
         this.effectSystem.rightCanvas.style.top = '0';
@@ -501,9 +485,9 @@ class GameScene extends Scene {
         this.effectSystem.rightCanvas.style.boxShadow = '0 0 20px rgba(255, 99, 71, 0.5)'; // 红色发光效果
         this.effectSystem.rightCanvas.style.zIndex = '16'; // 确保在容器之上
         
-        // 创建OffscreenCanvas（用于离屏渲染）- 使用实际像素尺寸
-        this.effectSystem.offscreenLeftCanvas = new OffscreenCanvas(actualWidth, actualHeight);
-        this.effectSystem.offscreenRightCanvas = new OffscreenCanvas(actualWidth, actualHeight);
+        // 创建OffscreenCanvas（用于离屏渲染）- 使用CSS像素尺寸
+        this.effectSystem.offscreenLeftCanvas = new OffscreenCanvas(displayWidth, displayHeight);
+        this.effectSystem.offscreenRightCanvas = new OffscreenCanvas(displayWidth, displayHeight);
         
         // 获取上下文
         this.effectSystem.leftCtx = this.effectSystem.leftCanvas.getContext('2d');
@@ -538,7 +522,7 @@ class GameScene extends Scene {
         const actualWidth = this.effectSystem.leftCanvas.width;
         const actualHeight = this.effectSystem.leftCanvas.height;
         
-        // 清除Canvas - 使用实际像素尺寸
+        // 清除Canvas - 使用CSS像素尺寸
         this.effectSystem.leftCtx.clearRect(0, 0, actualWidth, actualHeight);
         this.effectSystem.rightCtx.clearRect(0, 0, actualWidth, actualHeight);
         
@@ -565,15 +549,15 @@ class GameScene extends Scene {
             } else {
                 // 如果主画布也不可用，绘制一个测试背景
                 this.effectSystem.leftCtx.fillStyle = '#228B22';
-                this.effectSystem.leftCtx.fillRect(0, 0, displayWidth, displayHeight);
+                this.effectSystem.leftCtx.fillRect(0, 0, actualWidth, actualHeight);
                 this.effectSystem.rightCtx.fillStyle = '#228B22';
-                this.effectSystem.rightCtx.fillRect(0, 0, displayWidth, displayHeight);
+                this.effectSystem.rightCtx.fillRect(0, 0, actualWidth, actualHeight);
                 
                 console.log('主画布不可用，使用测试背景');
             }
         }
         
-        // 添加半透明遮罩和标签 - 使用实际像素尺寸
+        // 添加半透明遮罩和标签 - 使用CSS像素尺寸
         this.effectSystem.leftCtx.fillStyle = 'rgba(255, 215, 0, 0.3)';
         this.effectSystem.leftCtx.fillRect(0, 0, actualWidth, actualHeight);
         
@@ -607,11 +591,6 @@ class GameScene extends Scene {
         const displayWidth = rect.width;
         const displayHeight = rect.height;
         
-        // 获取主canvas的实际像素尺寸（考虑设备像素比）
-        const dpr = window.devicePixelRatio || 1;
-        const actualWidth = canvas.width;
-        const actualHeight = canvas.height;
-        
         // 如果maxSeparation还没有计算，则计算对角线的一半
         if (this.effectSystem.maxSeparation === 0) {
             const diagonal = Math.sqrt(displayWidth * displayWidth + displayHeight * displayHeight);
@@ -633,9 +612,9 @@ class GameScene extends Scene {
             const normalX = -lineVecY / lineLength;
             const normalY = lineVecX / lineLength;
 
-            // 清除OffscreenCanvas - 使用实际像素尺寸
-            this.effectSystem.offscreenLeftCtx.clearRect(0, 0, actualWidth, actualHeight);
-            this.effectSystem.offscreenRightCtx.clearRect(0, 0, actualWidth, actualHeight);
+            // 清除OffscreenCanvas - 使用CSS像素尺寸
+            this.effectSystem.offscreenLeftCtx.clearRect(0, 0, displayWidth, displayHeight);
+            this.effectSystem.offscreenRightCtx.clearRect(0, 0, displayWidth, displayHeight);
 
             // 使用备份的画布内容（如果可用），否则使用主画布
             const sourceCanvas = this.canvasBackup.isBackupReady && this.canvasBackup.backupCanvas ?
@@ -707,7 +686,7 @@ class GameScene extends Scene {
         const actualWidth = this.effectSystem.leftCanvas.width;
         const actualHeight = this.effectSystem.leftCanvas.height;
 
-        // 将OffscreenCanvas内容绘制到显示Canvas - 使用实际像素尺寸
+        // 将OffscreenCanvas内容绘制到显示Canvas - 使用CSS像素尺寸
         this.effectSystem.leftCtx.clearRect(0, 0, actualWidth, actualHeight);
         this.effectSystem.rightCtx.clearRect(0, 0, actualWidth, actualHeight);
 
@@ -725,6 +704,10 @@ class GameScene extends Scene {
         if (!this.effectSystem.leftCtx || !this.effectSystem.rightCtx) {
             return;
         }
+
+        // 获取Canvas尺寸
+        const actualWidth = this.effectSystem.leftCanvas.width;
+        const actualHeight = this.effectSystem.leftCanvas.height;
 
         // 计算切分线的角度
         const lineVecX = cutLine.end.x - cutLine.start.x;
@@ -1352,8 +1335,7 @@ class GameScene extends Scene {
         const displayWidth = rect.width;
         const displayHeight = rect.height;
 
-        // 获取画布的实际绘制尺寸（考虑设备像素比）
-        const dpr = window.devicePixelRatio || 1;
+        // 获取画布的实际绘制尺寸（CSS像素尺寸）
         const actualWidth = canvas.width;
         const actualHeight = canvas.height;
 
@@ -1687,8 +1669,7 @@ class GameScene extends Scene {
         const displayWidth = rect.width;
         const displayHeight = rect.height;
 
-        // 获取画布的实际绘制尺寸（考虑设备像素比）
-        const dpr = window.devicePixelRatio || 1;
+        // 获取画布的实际绘制尺寸（CSS像素尺寸）
         const actualWidth = canvas.width;
         const actualHeight = canvas.height;
 

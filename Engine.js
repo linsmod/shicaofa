@@ -53,7 +53,6 @@ class GameEngine {
     resizeCanvas() {
         if (!this.canvas) return;
 
-        const dpr = window.devicePixelRatio || 1;
         const rect = this.canvas.getBoundingClientRect();
         const displayWidth = rect.width;
         const displayHeight = rect.height;
@@ -62,21 +61,15 @@ class GameEngine {
         this.canvas.style.width = displayWidth + 'px';
         this.canvas.style.height = displayHeight + 'px';
 
-        // 设置Canvas实际尺寸（考虑设备像素比）
-        this.canvas.width = displayWidth * dpr;
-        this.canvas.height = displayHeight * dpr;
+        // 设置Canvas实际尺寸（不使用dpr，直接使用CSS像素尺寸）
+        this.canvas.width = displayWidth;
+        this.canvas.height = displayHeight;
 
         // 重置变换矩阵
         this.ctx.setTransform(1, 0, 0, 1, 0, 0);
 
         // 清除画布
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-        // 缩放上下文以匹配像素比
-        this.ctx.scale(dpr, dpr);
-
-        // 确保绘制坐标位于像素中心，避免模糊
-        this.ctx.translate(0.5, 0.5);
 
         // 设置图像平滑质量
         this.ctx.imageSmoothingEnabled = true;
