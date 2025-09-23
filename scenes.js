@@ -20,10 +20,10 @@ class StartScene extends Scene {
     }
 
     createUI() {
-        // 创建开始按钮
+        // 创建开始按钮 - 使用相对坐标，在render方法中根据实际显示尺寸计算
         this.startButton = new Button(
-            this.engine.getCanvas().width / 2 - 100,
-            this.engine.getCanvas().height / 2 + 50,
+            0,  // 相对坐标，在render中计算
+            0,  // 相对坐标，在render中计算
             200,
             50,
             '开始占卜',
@@ -81,8 +81,11 @@ class StartScene extends Scene {
         ctx.font = '1.1rem "Microsoft YaHei", sans-serif';
         ctx.fillText(this.subtitle, width / 2, height / 2);
 
-        // 渲染开始按钮
+        // 渲染开始按钮 - 根据实际显示尺寸设置按钮位置
         if (this.startButton) {
+            // 设置按钮位置（使用CSS显示尺寸，而不是canvas像素尺寸）
+            this.startButton.x = width / 2 - 100;
+            this.startButton.y = height / 2 + 50;
             this.startButton.render(ctx);
         }
     }
@@ -280,26 +283,34 @@ class GameScene extends Scene {
         const scaledWidth = displayWidth;
         const scaledHeight = 60; // CSS高度固定为60px
         
-        // 绘制进度背景
-        this.progressCanvas.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-        this.progressCanvas.ctx.fillRect(0, 0, scaledWidth/2, scaledHeight);
-        
-        // 添加内边距
-        const padding = 0; // 上padding减半
-        const contentWidth = scaledWidth - padding * 2;
-        const contentHeight = scaledHeight - padding * 2;
-        
         // 绘制进度标题
         this.progressCanvas.ctx.fillStyle = '#FFD700';
         this.progressCanvas.ctx.font = 'bold 16px "Microsoft YaHei", sans-serif';
         this.progressCanvas.ctx.textAlign = 'left';
-        this.progressCanvas.ctx.fillText('取', padding, padding);
+        this.progressCanvas.ctx.fillText('取', 10, 20);
         
-        // 绘制六个爻的进度方块
-        const yaoAreaStartX = padding + 20; // 减少间距，从80改为50
-        const yaoAreaY = padding + 35;
+        // 计算内容区域宽度
+        const titleWidth = this.progressCanvas.ctx.measureText('取').width;
+        const yaoAreaStartX = 10 + titleWidth + 10; // 标题右边距10px
+        
+        // 计算六个爻区域的总宽度
         const yaoBlockSize = 10;
         const yaoSpacing = 3;
+        const yaoAreaWidth = 6 * 50; // 6个爻，每个占50px
+        
+        // 计算背景总宽度（标题 + 爻区域 + 右边距）
+        const backgroundWidth = yaoAreaStartX + yaoAreaWidth + 20;
+        
+        // 绘制进度背景（适应内容宽度）
+        this.progressCanvas.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        this.progressCanvas.ctx.fillRect(0, 0, backgroundWidth, scaledHeight);
+        
+        // 添加内边距
+        const padding = 0;
+        const contentHeight = scaledHeight - padding * 2;
+        
+        // 绘制六个爻的进度方块
+        const yaoAreaY = padding + 35;
         const endofX = 0;
         for (let yao = 0; yao < 6; yao++) {
             const yaoX = yaoAreaStartX + yao * 50;

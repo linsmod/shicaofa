@@ -374,8 +374,13 @@ class Renderer {
         // 渲染场景背景
         this.renderBackground(scene);
 
-        // 渲染场景内容
-        scene.render(this.ctx, this.canvas.width, this.canvas.height);
+        // 获取CSS显示尺寸（用于场景渲染）
+        const rect = this.canvas.getBoundingClientRect();
+        const displayWidth = rect.width;
+        const displayHeight = rect.height;
+
+        // 渲染场景内容（使用CSS显示尺寸，而不是像素尺寸）
+        scene.render(this.ctx, displayWidth, displayHeight);
 
         // 渲染UI元素
         this.renderUI();
