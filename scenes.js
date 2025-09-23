@@ -53,9 +53,7 @@ class StartScene extends Scene {
 
 
     onStartButtonClick() {
-        if (this.sceneManager) {
-            this.sceneManager.switchToScene('game');
-        }
+        this.nextScene = "game";
     }
 
     render(ctx, width, height) {
@@ -81,6 +79,9 @@ class StartScene extends Scene {
             this.startButton.y = height / 2 + 50;
             this.startButton.render(ctx);
         }
+    }
+    onExit(){
+        return this.yaos;
     }
 }
 
@@ -491,9 +492,9 @@ class GameScene extends Scene {
         this.effectSystem.canvi.appendChild(this.effectSystem.rightCanvas);
         
         // 等待下一个渲染周期再绘制内容，确保DOM已经完全加载
-        setTimeout(() => {
-            this.renderInitialCanvasContent();
-        }, 100);
+        // setTimeout(() => {
+        //     this.renderInitialCanvasContent();
+        // }, 100);
         
         // 标记为已初始化
         this.effectSystem.isMultiCanvasInitialized = true;
@@ -1256,7 +1257,7 @@ class GameScene extends Scene {
                 this.asideStalksType = '';
 
                 if (this.yaos.length >= 6) {
-                    this.showResult();
+                    this.nextScene = 'result'
                     this.addLog("手动占卜完成");
                 } else {
                     this.divided = false;
@@ -1984,17 +1985,6 @@ class GameScene extends Scene {
     showLogs() {
         if (this.sceneManager) {
             this.sceneManager.switchToScene('logs');
-        }
-    }
-
-    showResult() {
-        if (this.sceneManager) {
-            // 不直接切换场景，而是调用全局的showResult函数
-            if (window.showResult) {
-                window.showResult();
-            } else {
-                this.sceneManager.switchToScene('result');
-            }
         }
     }
 

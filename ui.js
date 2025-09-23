@@ -10,8 +10,8 @@ class Button extends UIElement {
         super(x, y, width, height);
         this.text = text;
         this.onClick = onClick;
-        this.backgroundColor = 'linear-gradient(to bottom, #8B4513, #A0522D)';
-        this.textColor = '#fff';
+        this.backgroundColor = 'linear-gradient(to bottom, #FFD700, #FFA500)';
+        this.textColor = '#8B4513';
         this.fontSize = '1rem';
         this.fontWeight = 'normal';
         this.borderColor = '#8B4513';

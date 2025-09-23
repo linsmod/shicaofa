@@ -297,16 +297,18 @@ class SceneManager {
             throw new Error(`Scene '${name}' not found`);
         }
 
+        var lastSceneResult = null;
+
         // 退出当前场景
         if (this.currentSceneName && this.scenes.has(this.currentSceneName)) {
             const currentScene = this.scenes.get(this.currentSceneName);
-            currentScene.onExit();
+            lastSceneResult = currentScene.onExit();
         }
 
         // 切换到新场景
         this.currentSceneName = name;
         const newScene = this.scenes.get(name);
-        newScene.onEnter();
+        newScene.onEnter(lastSceneResult);
         
         console.log(`Switched to scene '${name}'`);
     }
@@ -353,6 +355,10 @@ class SceneManager {
         if (this.currentSceneName && this.scenes.has(this.currentSceneName)) {
             const currentScene = this.scenes.get(this.currentSceneName);
             currentScene.update(deltaTime);
+
+            if(currentScene.nextScene!=null){
+                this.switchToScene(currentScene.nextScene);
+            }
         }
     }
 }
@@ -599,7 +605,12 @@ class Scene extends EventHandler {
         this.backgroundColor = '#228B22';
         this.isInitialized = false;
         this.uiElements = []; // 存储所有UI元素
+        this.nextScene = null;
     }
+
+     setNext(next) {
+        this.nextScene = next;
+     }
 
     /**
      * 设置场景管理器
