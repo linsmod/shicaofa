@@ -96,6 +96,9 @@ class StartScene extends Scene {
     render(ctx, width, height) {
        super.clearRect(ctx,0,0,width,height,this.backgroundColor);
 
+       // 绘制阳光光束效果
+       this.drawSunlightBeams(ctx, width, height);
+
        // 渲染标题文本
        if (this.titleText) {
            this.titleText.x = width / 2;
@@ -117,6 +120,107 @@ class StartScene extends Scene {
            this.startButton.y = height / 2 + 50;
            this.startButton.render(ctx);
        }
+    }
+
+    /**
+     * 绘制阳光光束效果（丁达尔效应）
+     * @param {CanvasRenderingContext2D} ctx - Canvas上下文
+     * @param {number} width - 画布宽度
+     * @param {number} height - 画布高度
+     */
+    drawSunlightBeams(ctx, width, height) {
+        const time = Date.now() * 0.0008; // 时间因子，用于动画
+        
+        // 创建多个从画布边缘外射入的光束
+        const beamCount = 8;
+        
+        for (let i = 0; i < beamCount; i++) {
+            // 非对称分布，让光束从不同角度射入
+            const baseAngle = (i / beamCount) * Math.PI * 1.5 + Math.PI * 0.25; // 只覆盖135度范围
+            const angleVariation = Math.sin(time * 0.3 + i) * 0.4; // 缓慢摆动
+            const angle = baseAngle + angleVariation;
+            
+            // 光束起点在画布外
+            const startDistance = Math.max(width, height) * 0.8;
+            const startX = width * 0.7 + Math.cos(angle) * startDistance;
+            const startY = height * 0.3 + Math.sin(angle) * startDistance;
+            
+            // 光束终点在画布内不同位置
+            const endX = width * (0.1 + Math.sin(time * 0.2 + i) * 0.3);
+            const endY = height * (0.4 + Math.cos(time * 0.15 + i) * 0.4);
+            
+            // 创建渐变
+            const gradient = ctx.createLinearGradient(startX, startY, endX, endY);
+            
+            // 丁达尔效应的渐变效果
+            const opacity = 0.06 + Math.sin(time + i * 0.7) * 0.02;
+            
+            gradient.addColorStop(0, `rgba(255, 255, 255, 0)`); // 完全透明
+            gradient.addColorStop(0.1, `rgba(255, 255, 200, ${opacity * 0.3})`); // 淡淡的浅黄
+            gradient.addColorStop(0.3, `rgba(255, 255, 150, ${opacity * 0.6})`); // 浅黄色
+            gradient.addColorStop(0.6, `rgba(255, 215, 0, ${opacity * 0.8})`); // 金色
+            gradient.addColorStop(0.8, `rgba(255, 255, 150, ${opacity * 0.4})`); // 再次变浅
+            gradient.addColorStop(1, `rgba(255, 255, 255, 0)`); // 透明边缘
+            
+            // 绘制光束
+            ctx.save();
+            ctx.globalCompositeOperation = 'screen'; // 使用混合模式创建发光效果
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = 8 + Math.sin(time * 0.5 + i) * 4; // 动态宽度
+            ctx.lineCap = 'round';
+            
+            // 添加轻微的曲线，让光束更自然
+            const controlX1 = startX + (endX - startX) * 0.3 + Math.sin(time + i) * 20;
+            const controlY1 = startY + (endY - startY) * 0.3 + Math.cos(time + i) * 15;
+            const controlX2 = startX + (endX - startX) * 0.7 + Math.sin(time + i + 1) * 15;
+            const controlY2 = startY + (endY - startY) * 0.7 + Math.cos(time + i + 1) * 10;
+            
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            ctx.bezierCurveTo(controlX1, controlY1, controlX2, controlY2, endX, endY);
+            ctx.stroke();
+            ctx.restore();
+        }
+        
+        // 添加一些随机分布的丁达尔光斑
+        for (let i = 0; i < 12; i++) {
+            const x = width * (0.2 + Math.sin(time * 0.1 + i * 1.7) * 0.6);
+            const y = height * (0.2 + Math.cos(time * 0.08 + i * 1.3) * 0.6);
+            const size = 3 + Math.sin(time * 1.5 + i) * 2;
+            const alpha = 0.15 + Math.sin(time + i * 0.5) * 0.1;
+            
+            // 创建径向渐变模拟光斑
+            const spotGradient = ctx.createRadialGradient(x, y, 0, x, y, size);
+            spotGradient.addColorStop(0, `rgba(255, 255, 255, ${alpha})`);
+            spotGradient.addColorStop(0.5, `rgba(255, 255, 200, ${alpha * 0.6})`);
+            spotGradient.addColorStop(1, `rgba(255, 255, 255, 0)`);
+            
+            ctx.save();
+            ctx.globalCompositeOperation = 'screen';
+            ctx.fillStyle = spotGradient;
+            ctx.beginPath();
+            ctx.arc(x, y, size, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+        
+        // 添加一些微小的尘埃粒子
+        for (let i = 0; i < 25; i++) {
+            const x = width * (0.1 + Math.sin(time * 0.05 + i * 2.1) * 0.8);
+            const y = height * (0.1 + Math.cos(time * 0.04 + i * 1.8) * 0.8);
+            const size = 0.5 + Math.sin(time * 3 + i) * 0.3;
+            const alpha = 0.1 + Math.sin(time * 2 + i * 0.7) * 0.05;
+            
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = '#FFFACD';
+            ctx.shadowBlur = 3;
+            ctx.shadowColor = '#FFFACD';
+            ctx.beginPath();
+            ctx.arc(x, y, size, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
     }
     onExit(){
         // 隐藏缩略图Canvas
@@ -1779,7 +1883,7 @@ class ResultScene extends Scene {
                 // 绘制更大的叶子
                 ctx.fillStyle = '#228b22';
                 ctx.beginPath();
-                ctx.ellipse(-5, -20, 4, 10, -0.3, 0, Math.PI * 2);
+                ctx.ellipse(-5, -20, 6, 12, -0.3, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.beginPath();
                 ctx.ellipse(5, 20, 4, 10, 0.3, 0, Math.PI * 2);
@@ -1816,7 +1920,7 @@ class ResultScene extends Scene {
         }
 
         // 在左边三分之一区域绘制较大的八卦符号装饰
-        const symbols = ['☯', '☲'];
+        const symbols = ['☯'];
         symbols.forEach((symbol, index) => {
             const x = 60 + (index % 2) * 200;
             const y = 120 + Math.floor(index / 2) * 200;
@@ -1824,8 +1928,8 @@ class ResultScene extends Scene {
             if (x <= leftThirdWidth) {
                 ctx.save();
                 ctx.globalAlpha = 0.2;
-                ctx.fillStyle = '#8b4513';
-                ctx.font = '60px serif';
+                ctx.fillStyle = '#d9d9d937';
+                ctx.font = '600px serif';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(symbol, x, y);
