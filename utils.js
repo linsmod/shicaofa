@@ -269,7 +269,7 @@ class StalksAlgorithm {
     }
     
     // 三变才能生成一个爻
-    static doYaoStep(input,left,right,lastout){
+    static doSubModStep(input,left,right,lastout){
         let stepnum = lastout && lastout.nextStep || 1;
         switch(stepnum){
             case 1: return StalksAlgorithm.doYaoStepNext(input,left,right,{rest:49,nextStep:1,results:[]});
@@ -293,7 +293,7 @@ class StalksAlgorithm {
         if(leftsub==0)
             leftsub=4;
         let rightsub =  (right-1) % 4;
-        if(rightsub==4)
+        if(rightsub==0)
             rightsub=4;
         rightsub = rightsub +1;
         let totalsub = leftsub+rightsub/* 右去1*/;

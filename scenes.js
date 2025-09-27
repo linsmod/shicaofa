@@ -139,14 +139,6 @@ class GameScene extends Scene {
             isMultiCanvasInitialized: false
         };
 
-        // 主Canvas备份系统
-        this.canvasBackup = {
-            backupCanvas: null,
-            backupCtx: null,
-            isBackupReady: false,
-            backupTime: 0
-        };
-
         // 进度条Canvas系统
         this.progressCanvas = {
             canvas: null,
@@ -162,7 +154,6 @@ class GameScene extends Scene {
         this.settingsButton = null;
         this.initStalks(49);
         this.initMultiCanvasSystem();
-        this.initCanvasBackup();
         this.initProgressCanvas();
         this.createUI();
         this.registerUIElements();
@@ -170,18 +161,6 @@ class GameScene extends Scene {
     }
     onStart(){
         this.init();
-    }
-
-    /**
-     * 初始化Canvas备份系统
-     */
-    initCanvasBackup() {
-        const canvasManager = this.engine.getCanvasManager();
-        const { width, height } = canvasManager.getDisplaySize();
-        this.canvasBackup.backupCanvas = canvasManager.createOffscreenCanvas(width, height);
-        this.canvasBackup.backupCtx = this.canvasBackup.backupCanvas.getContext('2d');
-        
-        console.log('Canvas备份系统初始化完成');
     }
 
     /**
@@ -322,54 +301,6 @@ class GameScene extends Scene {
     }
 
     onClick(){
-    }
-
-    /**
-     * 备份主Canvas内容
-     * 在圆点渲染完成后调用，为特效渲染做准备
-     */
-    backupMainCanvas() {
-        if (!this.canvasBackup.backupCanvas || !this.canvasBackup.backupCtx) {
-            console.warn('Canvas备份系统未初始化');
-            return false;
-        }
-
-        const mainCanvas = this.engine.getCanvas();
-        if (!mainCanvas) {
-            console.warn('主Canvas不可用');
-            return false;
-        }
-
-        // 清除备份Canvas
-        this.canvasBackup.backupCtx.clearRect(0, 0, this.canvasBackup.backupCanvas.width, this.canvasBackup.backupCanvas.height);
-
-        // 复制主Canvas内容到备份Canvas
-        this.canvasBackup.backupCtx.drawImage(mainCanvas, 0, 0);
-        
-        // 记录备份时间
-        this.canvasBackup.backupTime = performance.now();
-        this.canvasBackup.isBackupReady = true;
-
-        // console.log('主Canvas已备份，备份时间:', this.canvasBackup.backupTime);
-        return true;
-    }
-
-    /**
-     * 从备份Canvas恢复内容
-     * @param {CanvasRenderingContext2D} targetCtx - 目标Canvas上下文
-     */
-    restoreFromBackup(targetCtx) {
-        if (!this.canvasBackup.isBackupReady || !this.canvasBackup.backupCanvas || !this.canvasBackup.backupCtx) {
-            console.warn('Canvas备份不可用');
-            return false;
-        }
-
-        // 将备份Canvas内容绘制到目标Canvas
-        targetCtx.clearRect(0, 0, targetCtx.canvas.width, targetCtx.canvas.height);
-        targetCtx.drawImage(this.canvasBackup.backupCanvas, 0, 0);
-
-        console.log('已从备份Canvas恢复内容');
-        return true;
     }
 
     /**
@@ -783,7 +714,7 @@ class GameScene extends Scene {
         const yaoNames = ['初', '二', '三', '四', '五', '上'];
         const yaoName = yaoNames[this.yaos.length];
         // 执行蓍草法计算以获取余数信息
-        let result = StalksAlgorithm.doYaoStep(
+        let result = StalksAlgorithm.doSubModStep(
             this.lastresult.rest,
             this.leftGroup.length,
             this.rightGroup.length,
@@ -813,6 +744,7 @@ class GameScene extends Scene {
             logMessage += `本爻合去${49-result.rest}，`;
 
             // Next值：如果是第三变，显示得爻之数，否则显示剩余的蓍草数量
+            logMessage += `得${result.rest} `;
             if (result.nextStep === 4) {
                 // 第三变，计算爻值
                 let yaoValue;
@@ -834,9 +766,6 @@ class GameScene extends Scene {
                     yaoType = "异常";
                 }
                 logMessage += `得${yaoType}${yaoValue}`;
-            } else {
-                // 其他变，显示剩余的蓍草数量
-                logMessage += `Next=${result.rest}`;
             }
         } else {
             // 如果计算失败，使用简化格式
@@ -850,7 +779,7 @@ class GameScene extends Scene {
 
         this.currentStep++;
 
-        // 三变的最终结果生成一个爻
+        // 用第三变结果生成一个爻
         if(result.nextStep>=4){
             this.yaos.push(StalksAlgorithm.calculateYaoValue(result));
 
@@ -922,15 +851,20 @@ class GameScene extends Scene {
             const x = padding + Math.random() * (displayWidth - 2 * padding);
             const y = padding + Math.random() * (displayHeight - 2 * padding);
 
+            // 为不同组的圆圈设置不同的颜色
+            const colors = ['#FFD700', '#FF6347', '#32CD32', '#1E90FF', '#FF69B4', '#FFA500'];
+            const color = colors[i % colors.length];
+
             this.stalks.push({
                 x: x,
                 y: y,
                 radius: 8,
-                color: '#DEB887',
+                color: color,
                 group: null,
                 visible: true
             });
         }
+        this.dirty = true;
     }
 
     createUI() {
@@ -1141,8 +1075,12 @@ class GameScene extends Scene {
             );
             if (distance > 0) {
                 stalk.group = '地';
+                // 为地组圆圈设置红色系
+                stalk.color = '#FF6347';
             } else {
                 stalk.group = '天';
+                // 为天组圆圈设置金色系
+                stalk.color = '#FFD700';
             }
         });
 
@@ -1211,12 +1149,8 @@ class GameScene extends Scene {
 
       
 
-        if(this.dirty){
             // 绘制蓍草（圆点）
             this.drawStalks(ctx);
-            // 在圆点渲染完成后备份主Canvas，为特效渲染做准备
-            this.backupMainCanvas();
-        }
         // 渲染特效
         this.renderEffects(ctx);
 
@@ -1229,10 +1163,18 @@ class GameScene extends Scene {
         if (this.logsButton) this.logsButton.render(ctx);
         if (this.settingsPanel) this.settingsPanel.render(ctx);
         if (this.gameInfoPanel) this.gameInfoPanel.render(ctx);
-        this.dirty = false;
     }
 
     drawStalks(ctx) {
+        // 绘制所有蓍草
+        if (this.showDots && this.stalks) {
+            this.stalks.forEach(stalk => {
+                if (stalk.visible) {
+                    this.drawStalk(ctx, stalk);
+                }
+            });
+        }
+        
         // 绘制划拉轨迹
         if (this.isDragging && this.trail.length > 1) {
             this.drawTrail(ctx);
@@ -1249,9 +1191,13 @@ class GameScene extends Scene {
             // 绘制圆形蓍草
             ctx.beginPath();
             ctx.arc(stalk.x, stalk.y, stalk.radius, 0, Math.PI * 2);
+            
+            // 使用圆圈自身的颜色
+            ctx.fillStyle = stalk.color;
             ctx.fill();
 
-            ctx.strokeStyle = '#8B4513';
+            // 根据圆圈颜色设置边框颜色
+            ctx.strokeStyle = stalk.group === '天' ? '#FFA500' : '#8B0000';
             ctx.lineWidth = 1;
             ctx.stroke();
         }
@@ -1583,50 +1529,6 @@ class ResultScene extends Scene {
         // 渲染UI元素
         if (this.restartButton) this.restartButton.render(ctx);
         if (this.newGameButton) this.newGameButton.render(ctx);
-
-        // 绘制卦象信息（使用缓存的数据，避免重复计算）
-        // if (this.yaos.length > 0 && this.guaData) {
-        //     // 绘制卦名和解释
-        //     ctx.fillStyle = '#fff';
-        //     ctx.font = '1rem "Microsoft YaHei", sans-serif';
-        //     ctx.textAlign = 'center';
-        //     ctx.fillText(this.guaData.interpretation, width / 2, height - 180);
-
-        //     // 绘制卦象
-        //     ctx.fillStyle = '#FFD700';
-        //     ctx.font = '0.9rem "Microsoft YaHei", sans-serif';
-        //     ctx.fillText(this.guaData.symbolism, width / 2, height - 150);
-
-        //     // 绘制建议
-        //     ctx.fillStyle = '#90EE90';
-        //     ctx.font = '0.9rem "Microsoft YaHei", sans-serif';
-        //     ctx.fillText('建议：' + this.guaData.advice, width / 2, height - 120);
-
-        //     // 绘制爻辞标题
-        //     ctx.fillStyle = '#FFD700';
-        //     ctx.font = 'bold 0.9rem "Microsoft YaHei", sans-serif';
-        //     ctx.fillText('爻辞：', width / 2, height - 80);
-
-        //     // 绘制六爻爻辞
-        //     ctx.fillStyle = '#fff';
-        //     ctx.font = '0.8rem "Microsoft YaHei", sans-serif';
-
-        //     // 爻辞数组（示例，实际应该从卦象数据中获取）
-        //     const yaoTexts = [
-        //         `初爻：${this.yaos[0] === 9 || this.yaos[0] === 7 ? '阳' : '阴'}爻`,
-        //         `二爻：${this.yaos[1] === 9 || this.yaos[1] === 7 ? '阳' : '阴'}爻`,
-        //         `三爻：${this.yaos[2] === 9 || this.yaos[2] === 7 ? '阳' : '阴'}爻`,
-        //         `四爻：${this.yaos[3] === 9 || this.yaos[3] === 7 ? '阳' : '阴'}爻`,
-        //         `五爻：${this.yaos[4] === 9 || this.yaos[4] === 7 ? '阳' : '阴'}爻`,
-        //         `上爻：${this.yaos[5] === 9 || this.yaos[5] === 7 ? '阳' : '阴'}爻`
-        //     ];
-
-        //     // 绘制每个爻的信息
-        //     for (let i = 0; i < 6; i++) {
-        //         const y = height - 50 + i * 15;
-        //         ctx.fillText(yaoTexts[i], width / 2, y);
-        //     }
-        // }
     }
 
     // restartGame 方法已在前面定义，这里删除重复定义
