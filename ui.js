@@ -1,4 +1,4 @@
-s/**
+/**
  * UI组件库
  */
 
@@ -643,10 +643,10 @@ class GuaDisplay extends UIElement {
             this.renderGua(ctx, this.changingGuaName, this.changingGuaSymbol, this.changingYaos, this.y + 180, '变卦');
             
             // 绘制变爻信息
-            ctx.fillStyle = '#FFD700';
-            ctx.font = '1rem "Microsoft YaHei", sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText(`变爻：第${this.changingYaoIndices.join('、')}爻`, this.x + this.width / 2, this.y + 320);
+            // ctx.fillStyle = '#FFD700';
+            // ctx.font = '1rem "Microsoft YaHei", sans-serif';
+            // ctx.textAlign = 'center';
+            // ctx.fillText(`变爻：第${this.changingYaoIndices.join('、')}爻`, this.x + this.width / 2, this.y + 320);
         }
     }
 
@@ -692,7 +692,7 @@ class GuaDisplay extends UIElement {
     }
 
     drawYao(ctx, x, y, width, height, yaoValue) {
-        ctx.fillStyle = '#FFD700';
+        ctx.fillStyle = '#a9a9a9ff';
         
         if (yaoValue === 9) {
             // 老阳 ⚊ - 实线

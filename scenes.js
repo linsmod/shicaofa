@@ -231,6 +231,7 @@ class GameScene extends Scene {
         this.progressCanvas.container.style.height = height + 'px';
         this.progressCanvas.container.style.pointerEvents = 'none';
         this.progressCanvas.container.style.zIndex = '25';
+        this.progressCanvas.container.style.padding = '3px';
         
         // 使用CanvasManager创建进度条Canvas
         this.progressCanvas.canvas = canvasManager.createOffscreenCanvas(width, 60);
@@ -1270,12 +1271,12 @@ class GameScene extends Scene {
                 ctx.fill();
             });
 
-            // 添加标签 - 使用适合小尺寸的字体
+            // 添加标签 - 使用稍大的字体提高可读性
             ctx.fillStyle = '#FFD700';
-            ctx.font = 'bold 8px "Microsoft YaHei", sans-serif';
+            ctx.font = 'bold 10px "Microsoft YaHei", sans-serif';
             ctx.textAlign = 'left';
             ctx.textBaseline = 'top';
-            ctx.fillText('上次分割', 4, 4);
+            ctx.fillText('上次分割', 3, 3);
         }
     }
 
