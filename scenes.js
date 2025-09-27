@@ -119,7 +119,10 @@ class StartScene extends Scene {
        }
     }
     onExit(){
-        
+        // 隐藏缩略图Canvas
+        if (this.thumbnailCanvas && this.thumbnailCanvas.container) {
+            this.thumbnailCanvas.container.style.display = 'none';
+        }
     }
 }
 
@@ -1232,12 +1235,15 @@ class GameScene extends Scene {
         if (this.thumbnailCanvas.lastDivisionData) {
             const data = this.thumbnailCanvas.lastDivisionData;
             const scale = 0.2; // 缩放比例
-            ctx.fillStyle =  '#333333';
-            ctx.fillRect(0,0,ctx.canvas.width,ctx.canvas.height);
+            
+            // 绘制背景
+            ctx.fillStyle = '#333333';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
             // 绘制分割线
             if (data.cutLine) {
                 ctx.strokeStyle = '#FFFFFF';
-                ctx.lineWidth = 2;
+                ctx.lineWidth = 1;
                 ctx.beginPath();
                 ctx.moveTo(
                     data.cutLine.start.x * scale,
@@ -1257,20 +1263,19 @@ class GameScene extends Scene {
                 ctx.arc(
                     stalk.x * scale,
                     stalk.y * scale,
-                    3, // 缩略图中的圆圈半径
+                    2,
                     0,
                     Math.PI * 2
                 );
                 ctx.fill();
             });
 
-            // 添加标签
+            // 添加标签 - 使用适合小尺寸的字体
             ctx.fillStyle = '#FFD700';
-            ctx.font = '10px "Microsoft YaHei", sans-serif';
+            ctx.font = 'bold 8px "Microsoft YaHei", sans-serif';
             ctx.textAlign = 'left';
-            ctx.fillText('上次分割', 5, 15);
-            ctx.canvas.style.width = ctx.canvas.width+"px";
-            ctx.canvas.style.height = ctx.canvas.height+"px";
+            ctx.textBaseline = 'top';
+            ctx.fillText('上次分割', 4, 4);
         }
     }
 
@@ -1497,9 +1502,12 @@ class GameScene extends Scene {
      * 场景退出时调用
      */
     onExit() {
-        // 隐藏进度条Canvas
+        // 隐藏进度条Canvas和缩略图Canvas
         if (this.progressCanvas && this.progressCanvas.container) {
             this.progressCanvas.container.style.display = 'none';
+        }
+        if (this.thumbnailCanvas && this.thumbnailCanvas.container) {
+            this.thumbnailCanvas.container.style.display = 'none';
         }
     }
 }
@@ -1515,7 +1523,7 @@ class ResultScene extends Scene {
         this.restartButton = null;
         this.newGameButton = null;
         this.guaDisplay = null;
-        this.backgroundColor = 'linear-gradient(to bottom, #1a1a2e, #16213e, #0f3460)'
+        this.backgroundColor = 'linear-gradient(to bottom, #2E5A3E, #1E4A2E, #153A1E)'
         this.yaos = [];
         this.guaData = null; // 缓存卦象数据
         this.isGuaDataCalculated = false; // 标记是否已计算
@@ -1618,6 +1626,10 @@ class ResultScene extends Scene {
             '重新占卜',
             () => this.restartGame()
         );
+        this.restartButton.setBackgroundColor('linear-gradient(to bottom, #FFD700, #FFA500)');
+        this.restartButton.setTextColor('#8B4513');
+        this.restartButton.setFontSize('1.1rem');
+        this.restartButton.setFontWeight('bold');
 
         // 创建新的占卜按钮
         this.newGameButton = new Button(
@@ -1628,6 +1640,10 @@ class ResultScene extends Scene {
             '新的占卜',
             () => this.startNewGame()
         );
+        this.newGameButton.setBackgroundColor('linear-gradient(to bottom, #FFD700, #FFA500)');
+        this.newGameButton.setTextColor('#8B4513');
+        this.newGameButton.setFontSize('1.1rem');
+        this.newGameButton.setFontWeight('bold');
     }
 
     registerUIElements() {

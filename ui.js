@@ -1,4 +1,4 @@
-/**
+s/**
  * UI组件库
  */
 
@@ -84,17 +84,6 @@ class TextBlock extends UIElement {
         // 保存当前Canvas状态
         ctx.save();
         
-        // 重置变换矩阵，确保使用CSS像素坐标
-        ctx.resetTransform();
-        
-        // 重新应用必要的变换（像素对齐）
-        const canvasManager = this.engine ? this.engine.getCanvasManager() : null;
-        if (canvasManager) {
-            const dpr = canvasManager.getDevicePixelRatio();
-            ctx.scale(dpr, dpr);
-            ctx.translate(0.5, 0.5);
-        }
-
         // 设置文本样式
         ctx.font = `${this.options.fontWeight} ${this.options.fontSize} ${this.options.fontFamily}`;
         ctx.textAlign = this.options.textAlign;
