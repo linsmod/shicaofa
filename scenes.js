@@ -1715,6 +1715,9 @@ class ResultScene extends Scene {
     render(ctx, width, height) {
         super.clearRect(ctx,0,0,width,height,this.backgroundColor);
 
+        // 绘制装饰性蓍草背景
+        this.drawDecorativeStalks(ctx, width, height);
+
         // 渲染标题文本
         if (this.titleText) {
             this.titleText.x = width / 2;
@@ -1730,6 +1733,105 @@ class ResultScene extends Scene {
         // 渲染UI元素
         if (this.restartButton) this.restartButton.render(ctx);
         if (this.newGameButton) this.newGameButton.render(ctx);
+    }
+
+    /**
+     * 绘制装饰性蓍草背景
+     * @param {CanvasRenderingContext2D} ctx - Canvas上下文
+     * @param {number} width - 画布宽度
+     * @param {number} height - 画布高度
+     */
+    drawDecorativeStalks(ctx, width, height) {
+        // 只在左边三分之一区域绘制装饰
+        const leftThirdWidth = width / 2;
+        
+        const positions = [
+            {x: 60, y: 100, angle: 0.2, opacity: 0.4},
+            {x: 120, y: 180, angle: 0.4, opacity: 0.35},
+            {x: 40, y: 260, angle: 0.1, opacity: 0.45},
+            {x: 100, y: 340, angle: 0.3, opacity: 0.4},
+            {x: 80, y: 420, angle: 0.5, opacity: 0.38},
+            {x: 140, y: 500, angle: 0.2, opacity: 0.42},
+            {x: 50, y: 580, angle: 0.4, opacity: 0.4},
+            {x: 110, y: 140, angle: -0.2, opacity: 0.37},
+            {x: 30, y: 220, angle: -0.3, opacity: 0.43},
+            {x: 90, y: 300, angle: -0.1, opacity: 0.39},
+            {x: 70, y: 380, angle: -0.4, opacity: 0.41},
+            {x: 130, y: 460, angle: -0.2, opacity: 0.36}
+        ];
+        
+        positions.forEach(pos => {
+            // 确保位置在左边三分之一区域内
+            if (pos.x <= leftThirdWidth) {
+                ctx.save();
+                ctx.globalAlpha = pos.opacity;
+                ctx.translate(pos.x, pos.y);
+                ctx.rotate(pos.angle);
+                
+                // 绘制更大的蓍草
+                ctx.strokeStyle = '#8b4513';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(0, -40);
+                ctx.lineTo(0, 40);
+                ctx.stroke();
+                
+                // 绘制更大的叶子
+                ctx.fillStyle = '#228b22';
+                ctx.beginPath();
+                ctx.ellipse(-5, -20, 4, 10, -0.3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(5, 20, 4, 10, 0.3, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 添加额外的叶子装饰
+                ctx.beginPath();
+                ctx.ellipse(-3, 0, 3, 6, 0.5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(3, 0, 3, 6, -0.5, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.restore();
+            }
+        });
+        
+        // 在左边三分之一区域绘制较大的圆形装饰
+        for (let i = 0; i < 8; i++) {
+            const x = 50 + (i % 3) * 80;
+            const y = 150 + Math.floor(i / 3) * 120;
+            const radius = 25 + Math.sin(i) * 10;
+            
+            if (x <= leftThirdWidth) {
+                ctx.save();
+                ctx.globalAlpha = 0.12;
+                ctx.strokeStyle = '#8b4513';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+
+        // 在左边三分之一区域绘制较大的八卦符号装饰
+        const symbols = ['☯', '☲'];
+        symbols.forEach((symbol, index) => {
+            const x = 60 + (index % 2) * 200;
+            const y = 120 + Math.floor(index / 2) * 200;
+            
+            if (x <= leftThirdWidth) {
+                ctx.save();
+                ctx.globalAlpha = 0.2;
+                ctx.fillStyle = '#8b4513';
+                ctx.font = '60px serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(symbol, x, y);
+                ctx.restore();
+            }
+        });
     }
 }
 
