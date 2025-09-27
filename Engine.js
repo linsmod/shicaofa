@@ -692,7 +692,8 @@ class Scene extends UIElement {
         this.name = name;
         this.sceneManager = null;
         this.engine = null;
-        this.backgroundColor = '#33333333';
+        this.backgroundColorBase = '#228B22'
+        this.backgroundColor = '#33333355';
         // this.backgroundColor = "linear-gradient(to bottom, #2E8B57, #333333)"
         this.isInitialized = false;
         this.children = []; // 存储所有UI元素
@@ -811,6 +812,8 @@ class Scene extends UIElement {
         }
     }
     clearRect(ctx, x,y,w,h,c){
+        ctx.fillStyle = this.backgroundColorBase;
+        ctx.fillRect(x, y, w, h);
         if(!this.offsetX){
             this.offsetX =1;
             this.offsetY =1;
@@ -839,7 +842,7 @@ class Scene extends UIElement {
         } else {
             ctx.fillStyle = c;
         }
-        ctx.fillStyle = this.backgroundColor;
+        // ctx.fillStyle = this.backgroundColor;
         ctx.fillRect(x, y, w, h);
     }
 }

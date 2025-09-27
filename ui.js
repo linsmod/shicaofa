@@ -3,6 +3,127 @@
  */
 
 /**
+ * 文本块组件
+ */
+class TextBlock extends UIElement {
+    constructor(x, y, text, options = {}) {
+        super(x, y, 0, 0); // TextBlock的宽高在渲染时计算
+        this.text = text;
+        this.options = {
+            fontSize: '1rem',
+            fontWeight: 'normal',
+            fontFamily: '"Microsoft YaHei", sans-serif',
+            fillColor: '#000000',
+            strokeColor: null,
+            strokeWidth: 1,
+            textAlign: 'left',
+            textBaseline: 'top',
+            ...options
+        };
+        this.autoSize = true; // 自动计算尺寸
+    }
+
+    setText(text) {
+        this.text = text;
+        if (this.autoSize) {
+            this.updateSize();
+        }
+    }
+
+    setFontSize(size) {
+        this.options.fontSize = size;
+        if (this.autoSize) {
+            this.updateSize();
+        }
+    }
+
+    setFontWeight(weight) {
+        this.options.fontWeight = weight;
+        if (this.autoSize) {
+            this.updateSize();
+        }
+    }
+
+    setFontFamily(family) {
+        this.options.fontFamily = family;
+        if (this.autoSize) {
+            this.updateSize();
+        }
+    }
+
+    setFillColor(color) {
+        this.options.fillColor = color;
+    }
+
+    setStrokeColor(color) {
+        this.options.strokeColor = color;
+    }
+
+    setStrokeWidth(width) {
+        this.options.strokeWidth = width;
+    }
+
+    setTextAlign(align) {
+        this.options.textAlign = align;
+    }
+
+    setTextBaseline(baseline) {
+        this.options.textBaseline = baseline;
+    }
+
+    updateSize() {
+        // 这个方法需要在渲染时调用，因为需要Canvas上下文
+        // 暂时设置为默认值，实际尺寸在render方法中计算
+        this.width = 100;
+        this.height = 20;
+    }
+
+    render(ctx) {
+        if (!this.visible || !this.enabled) return;
+
+        // 保存当前Canvas状态
+        ctx.save();
+        
+        // 重置变换矩阵，确保使用CSS像素坐标
+        ctx.resetTransform();
+        
+        // 重新应用必要的变换（像素对齐）
+        const canvasManager = this.engine ? this.engine.getCanvasManager() : null;
+        if (canvasManager) {
+            const dpr = canvasManager.getDevicePixelRatio();
+            ctx.scale(dpr, dpr);
+            ctx.translate(0.5, 0.5);
+        }
+
+        // 设置文本样式
+        ctx.font = `${this.options.fontWeight} ${this.options.fontSize} ${this.options.fontFamily}`;
+        ctx.textAlign = this.options.textAlign;
+        ctx.textBaseline = this.options.textBaseline;
+        
+        // 计算文本尺寸（如果需要自动调整）
+        if (this.autoSize) {
+            const metrics = ctx.measureText(this.text);
+            this.width = metrics.width;
+            this.height = parseInt(this.options.fontSize) * 1.2; // 估算文本高度
+        }
+
+        // 绘制文本描边（如果设置了）
+        if (this.options.strokeColor && this.options.strokeWidth > 0) {
+            ctx.strokeStyle = this.options.strokeColor;
+            ctx.lineWidth = this.options.strokeWidth;
+            ctx.strokeText(this.text, this.x, this.y);
+        }
+
+        // 绘制文本填充
+        ctx.fillStyle = this.options.fillColor;
+        ctx.fillText(this.text, this.x, this.y);
+
+        // 恢复Canvas状态
+        ctx.restore();
+    }
+}
+
+/**
  * 按钮组件
  */
 class Button extends UIElement {
@@ -673,6 +794,7 @@ class ProgressBar extends UIElement {
 
 // 导出UI组件到全局作用域
 if (typeof window !== 'undefined') {
+    window.TextBlock = TextBlock;
     window.Button = Button;
     window.ImageButton = ImageButton;
     window.ModalPanel = ModalDialog;

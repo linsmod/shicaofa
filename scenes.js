@@ -32,6 +32,24 @@ class StartScene extends Scene {
     }
 
     createUI() {
+        // 创建标题文本块
+        this.titleText = new TextBlock(0, 0, '蓍草占卜', {
+            fontSize: '2rem',
+            fontWeight: 'bold',
+            fillColor: '#FFD700',
+            textAlign: 'center',
+            textBaseline: 'middle'
+        });
+
+        // 创建副标题文本块
+        this.subtitleText = new TextBlock(0, 0, '体验古老《易经》占卜的现代交互方式', {
+            fontSize: '1.1rem',
+            fontWeight: 'normal',
+            fillColor: '#fff',
+            textAlign: 'center',
+            textBaseline: 'middle'
+        });
+
         // 创建开始按钮 - 使用相对坐标，在render方法中根据实际显示尺寸计算
         this.startButton = new Button(
             0,  // 相对坐标，在render中计算
@@ -48,6 +66,10 @@ class StartScene extends Scene {
     }
 
     registerUIElements() {
+        // 注册文本元素
+        this.registerUIElement(this.titleText);
+        this.registerUIElement(this.subtitleText);
+        
         // 注册开始按钮
         this.registerUIElement(this.startButton);
     }
@@ -72,26 +94,27 @@ class StartScene extends Scene {
     render(ctx, width, height) {
        super.clearRect(ctx,0,0,width,height,this.backgroundColor);
 
+       // 渲染标题文本
+       if (this.titleText) {
+           this.titleText.x = width / 2;
+           this.titleText.y = height / 2 - 50;
+           this.titleText.render(ctx);
+       }
 
-       // 绘制标题
-       ctx.fillStyle = '#FFD700';
-       ctx.font = 'bold 2rem "Microsoft YaHei", sans-serif';
-       ctx.textAlign = 'center';
-       ctx.fillText(this.title, width / 2, height / 2 - 50);
+       // 渲染副标题文本
+       if (this.subtitleText) {
+           this.subtitleText.x = width / 2;
+           this.subtitleText.y = height / 2;
+           this.subtitleText.render(ctx);
+       }
 
-       // 绘制副标题
-       ctx.fillStyle = '#fff';
-       ctx.font = '1.1rem "Microsoft YaHei", sans-serif';
-       ctx.fillText(this.subtitle, width / 2, height / 2);
-       
-
-        // 渲染开始按钮 - 根据实际显示尺寸设置按钮位置
-        if (this.startButton) {
-            // 设置按钮位置（使用CSS显示尺寸，而不是canvas像素尺寸）
-            this.startButton.x = width / 2 - 100;
-            this.startButton.y = height / 2 + 50;
-            this.startButton.render(ctx);
-        }
+       // 渲染开始按钮 - 根据实际显示尺寸设置按钮位置
+       if (this.startButton) {
+           // 设置按钮位置（使用CSS显示尺寸，而不是canvas像素尺寸）
+           this.startButton.x = width / 2 - 100;
+           this.startButton.y = height / 2 + 50;
+           this.startButton.render(ctx);
+       }
     }
     onExit(){
         
@@ -1567,6 +1590,15 @@ class ResultScene extends Scene {
         const canvasWidth = size.width;
         const canvasHeight = size.height;
 
+        // 创建标题文本块
+        this.titleText = new TextBlock(canvasWidth / 2, 50, '占卜结果', {
+            fontSize: '2rem',
+            fontWeight: 'bold',
+            fillColor: '#FFD700',
+            textAlign: 'center',
+            textBaseline: 'middle'
+        });
+
         // 创建卦象显示组件（增加高度以适应本卦和变卦同时显示）
         this.guaDisplay = new GuaDisplay(
             canvasWidth / 2 - 150,
@@ -1597,6 +1629,11 @@ class ResultScene extends Scene {
     }
 
     registerUIElements() {
+        // 注册标题文本
+        if (this.titleText) {
+            this.registerUIElement(this.titleText);
+        }
+        
         // 注册卦象显示组件
         if (this.guaDisplay) {
             this.registerUIElement(this.guaDisplay);
@@ -1659,12 +1696,12 @@ class ResultScene extends Scene {
     render(ctx, width, height) {
         super.clearRect(ctx,0,0,width,height,this.backgroundColor);
 
-
-        // 绘制标题
-        ctx.fillStyle = '#FFD700';
-        ctx.font = 'bold 2rem "Microsoft YaHei", sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('占卜结果', width / 2, 50);
+        // 渲染标题文本
+        if (this.titleText) {
+            this.titleText.x = width / 2;
+            this.titleText.y = 50;
+            this.titleText.render(ctx);
+        }
 
         // 渲染卦象显示组件
         if (this.guaDisplay) {
@@ -1700,6 +1737,15 @@ class LogsScene extends Scene {
         const canvasWidth = size.width;
         const canvasHeight = size.height;
 
+        // 创建标题文本块
+        this.titleText = new TextBlock(canvasWidth / 2, 50, '占卜日志', {
+            fontSize: '1.5rem',
+            fontWeight: 'bold',
+            fillColor: '#FFD700',
+            textAlign: 'center',
+            textBaseline: 'middle'
+        });
+
         // 创建清空日志按钮
         this.clearButton = new Button(
             canvasWidth / 2 - 110,
@@ -1722,6 +1768,11 @@ class LogsScene extends Scene {
     }
 
     registerUIElements() {
+        // 注册标题文本
+        if (this.titleText) {
+            this.registerUIElement(this.titleText);
+        }
+        
         // 注册按钮
         this.registerUIElement(this.clearButton);
         this.registerUIElement(this.backButton);
@@ -1732,11 +1783,12 @@ class LogsScene extends Scene {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
         ctx.fillRect(0, 0, width, height);
 
-        // 绘制标题
-        ctx.fillStyle = '#FFD700';
-        ctx.font = 'bold 1.5rem "Microsoft YaHei", sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('占卜日志', width / 2, 50);
+        // 渲染标题文本
+        if (this.titleText) {
+            this.titleText.x = width / 2;
+            this.titleText.y = 50;
+            this.titleText.render(ctx);
+        }
 
         // 绘制日志内容
         ctx.fillStyle = '#fff';
