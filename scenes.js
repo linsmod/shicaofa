@@ -91,6 +91,9 @@ class StartScene extends Scene {
 class GameScene extends Scene {
     constructor() {
         super('game');
+    }
+
+    init() {
         this.stalks = [];
         this.leftGroup = [];
         this.rightGroup = [];
@@ -166,9 +169,6 @@ class GameScene extends Scene {
         this.settingsPanel = null;
         this.gameInfoPanel = null;
         this.settingsButton = null;
-    }
-
-    init() {
         this.initStalks();
         this.initMultiCanvasSystem();
         this.initCanvasBackup();
@@ -176,6 +176,9 @@ class GameScene extends Scene {
         this.createUI();
         this.registerUIElements();
         this.updateDisplay();
+    }
+    onEnter(){
+        this.init();
     }
 
     /**
@@ -490,7 +493,7 @@ class GameScene extends Scene {
         
         // 计算对角线的一半作为最大分离距离，确保左右canvas能移动到画布外面
         const diagonal = Math.sqrt(displayWidth * displayWidth + displayHeight * displayHeight);
-        this.effectSystem.maxSeparation = diagonal / 2;
+        this.effectSystem.maxSeparation = diagonal / 10;
         
         console.log(`计算的最大分离距离: ${this.effectSystem.maxSeparation}px (对角线: ${diagonal}px)`);
         
@@ -508,6 +511,9 @@ class GameScene extends Scene {
         if (canvasManager) {
             // 使用CanvasManager创建Canvas
             this.effectSystem.leftCanvas = canvasManager.createOffscreenCanvas(displayWidth, displayHeight);
+            this.effectSystem.leftCanvas.style.position = 'absolute';
+            this.effectSystem.leftCanvas.style.left = '0';
+            this.effectSystem.leftCanvas.style.top = '0';
             this.effectSystem.leftCanvas.style.border = '3px solid #FFD700'; // 金色边框
             this.effectSystem.leftCanvas.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.5)'; // 金色发光效果
             this.effectSystem.leftCanvas.style.zIndex = '16'; // 确保在容器之上
@@ -530,6 +536,9 @@ class GameScene extends Scene {
         if (canvasManager) {
             // 使用CanvasManager创建Canvas
             this.effectSystem.rightCanvas = canvasManager.createOffscreenCanvas(displayWidth, displayHeight);
+            this.effectSystem.rightCanvas.style.position = 'absolute';
+            this.effectSystem.rightCanvas.style.left = '0';
+            this.effectSystem.rightCanvas.style.top = '0';
             this.effectSystem.rightCanvas.style.border = '3px solid #FF6347'; // 红色边框
             this.effectSystem.rightCanvas.style.boxShadow = '0 0 20px rgba(255, 99, 71, 0.5)'; // 红色发光效果
             this.effectSystem.rightCanvas.style.zIndex = '16'; // 确保在容器之上
@@ -569,10 +578,6 @@ class GameScene extends Scene {
         this.effectSystem.canvi.appendChild(this.effectSystem.leftCanvas);
         this.effectSystem.canvi.appendChild(this.effectSystem.rightCanvas);
         
-        // 等待下一个渲染周期再绘制内容，确保DOM已经完全加载
-        // setTimeout(() => {
-        //     this.renderInitialCanvasContent();
-        // }, 100);
         
         // 标记为已初始化
         this.effectSystem.isMultiCanvasInitialized = true;
@@ -1384,7 +1389,7 @@ class GameScene extends Scene {
         const y = touch.clientY - rect.top;
         
         // 判断是否构成点击事件
-        const isClick = this.isClick(this.touchStartX, this.touchStartY, x, y);
+        const isClick = this.isReleasedNearPressPiont(this.touchStartX, this.touchStartY, x, y);
         if (isClick) {
             this.handleClick(x, y);
         }
@@ -2206,9 +2211,7 @@ class ResultScene extends Scene {
     // restartGame 方法已在前面定义，这里删除重复定义
 
     startNewGame() {
-        if (this.sceneManager) {
-            this.sceneManager.switchToScene('start');
-        }
+        this.nextScene = 'start';
     }
 }
 

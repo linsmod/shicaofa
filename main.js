@@ -96,30 +96,6 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     function startGame() {
         if (currentGameScene) {
-            // 重置游戏状态
-            currentGameScene.state = 'dividing';
-            currentGameScene.currentStep = 0;
-            currentGameScene.divided = false;
-            
-            currentGameScene.currentStalks = 49;
-            currentGameScene.currentChange = 0;
-            currentGameScene.currentYao = 0;
-            currentGameScene.changeResults = [];
-            currentGameScene.yaos = [];
-            
-            currentGameScene.asideStalks = 0;
-            currentGameScene.asideStalksType = '';
-            
-            if (currentGameScene.removalTimeout) {
-                clearTimeout(currentGameScene.removalTimeout);
-                currentGameScene.removalTimeout = null;
-            }
-            
-            currentGameScene.logs = [];
-            gameLogs = [];
-            
-            currentGameScene.updateDisplay();
-            
             logManager.add('游戏重新开始');
             
             // 确保切换到游戏场景，避免频繁切换

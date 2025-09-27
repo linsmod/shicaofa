@@ -158,14 +158,20 @@ class GameEngine {
         if (this.mouseState) {
             if (this.mouseState.isPressed) {
                 currentScene.handleMouseDown(this.mouseState.x, this.mouseState.y);
+                this.capturedScene = currentScene;
                 this.mouseState.isPressed = false;
             }
             if (this.mouseState.isReleased) {
-                currentScene.handleMouseUp(this.mouseState.x, this.mouseState.y);
+                if(currentScene==this.capturedScene){
+                     currentScene.handleMouseUp(this.mouseState.x, this.mouseState.y);
+                }
+                this.capturedScene = null;
                 this.mouseState.isReleased = false;
             }
             if (this.mouseState.moved) {
-                currentScene.handleMouseMove(this.mouseState.x, this.mouseState.y);
+                if(currentScene==this.capturedScene){
+                    currentScene.handleMouseMove(this.mouseState.x, this.mouseState.y);
+                }
                 this.mouseState.moved = false;
             }
         }
@@ -363,7 +369,9 @@ class SceneManager {
             currentScene.update(deltaTime);
 
             if(currentScene.nextScene!=null){
-                this.switchToScene(currentScene.nextScene);
+                let next = currentScene.nextScene;
+                currentScene.nextScene = null;
+                this.switchToScene(next);
             }
         }
     }
@@ -464,8 +472,13 @@ class EventHandler {
         this.isMouseDown = false;
         this.isMouseUp = true;
         this.hoveredElements = new Set();
-        this.pressedElements = new Set();
+        this.modalElements = []; // 应该是数组，不是Set
+        this.capturedElement = null;
         this.uiElements = [];
+        
+        // 记录鼠标按下位置，用于点击判断
+        this.mouseDownX = 0;
+        this.mouseDownY = 0;
     }
 
     /**
@@ -476,6 +489,15 @@ class EventHandler {
         this.isMouseUp = false;
         this.mouseX = x;
         this.mouseY = y;
+        this.mouseDownX = x;
+        this.mouseDownY = y;
+
+        // 如果有模态元素，只检查模态元素及其子元素
+        if (this.modalElements.length > 0) {
+            const topModal = this.modalElements[this.modalElements.length - 1];
+            this._handleMouseDownForModal(x, y, topModal);
+            return;
+        }
         
         // 从后往前遍历，找到最上层的元素
         for (let i = this.uiElements.length - 1; i >= 0; i--) {
@@ -484,30 +506,40 @@ class EventHandler {
                 if (element.handleMouseDown) {
                     element.handleMouseDown(x, y);
                 }
-                this.pressedElements.add(element);
-                break;
+                this.capturedElement = element;
+                return; // 找到元素后立即返回
             }
         }
+        
+        // 点击空白处，清除捕获
+        this.capturedElement = null;
     }
 
     /**
-     * 处理鼠标释放
+     * 模态模式下的鼠标按下处理
      */
-    handleMouseUp(x, y) {
-        this.isMouseDown = false;
-        this.isMouseUp = true;
-        this.mouseX = x;
-        this.mouseY = y;
-        
-        // 处理所有被按下的元素
-        this.pressedElements.forEach(element => {
-            if (element.visible && element.enabled && element.isPointInside(x, y)) {
-                if (element.handleMouseUp) {
-                    element.handleMouseUp(x, y);
+    _handleMouseDownForModal(x, y, modalElement) {
+        // 检查是否点击在模态框内
+        if (modalElement.isPointInside(x, y)) {
+            // 在模态框内查找具体点击的元素
+            const clickedElement = this._findElementInContainer(modalElement, x, y);
+            if (clickedElement) {
+                if (clickedElement.handleMouseDown) {
+                    clickedElement.handleMouseDown(x, y);
                 }
+                this.capturedElement = clickedElement;
+            } else {
+                if (modalElement.handleMouseDown) {
+                    modalElement.handleMouseDown(x, y);
+                }
+                this.capturedElement = modalElement;
             }
-        });
-        this.pressedElements.clear();
+        } else {
+            // 点击模态框外部，可以触发关闭或忽略
+            if (modalElement.handleBackgroundClick) {
+                modalElement.handleBackgroundClick(x, y);
+            }
+        }
     }
 
     /**
@@ -519,7 +551,24 @@ class EventHandler {
         this.mouseX = x;
         this.mouseY = y;
         
-        // 检查悬停状态变化
+        // 如果有元素捕获了事件，优先处理捕获元素
+        if (this.capturedElement) {
+            if (this.capturedElement.handleMouseMove) {
+                this.capturedElement.handleMouseMove(x, y);
+            }
+            return;
+        }
+        
+        // 模态模式处理
+        if (this.modalElements.length > 0) {
+            const topModal = this.modalElements[this.modalElements.length - 1];
+            if (topModal.handleMouseMove) {
+                topModal.handleMouseMove(x, y);
+            }
+            return;
+        }
+        
+        // 正常模式的悬停处理
         const newHoveredElements = new Set();
         
         for (let i = this.uiElements.length - 1; i >= 0; i--) {
@@ -545,7 +594,7 @@ class EventHandler {
                     // 如果是离开的元素
                     if (this.hoveredElements.has(element)) {
                         if (element.handleMouseLeave) {
-                            element.handleMouseLeave();
+                            element.handleMouseLeave(x, y);
                         }
                     }
                 }
@@ -556,9 +605,51 @@ class EventHandler {
     }
 
     /**
-     * 处理点击
+     * 处理鼠标释放
+     */
+    handleMouseUp(x, y) {
+        this.isMouseDown = false;
+        this.isMouseUp = true;
+        this.mouseX = x;
+        this.mouseY = y;
+        
+        // 检查是否构成点击事件
+        if (this.isReleasedNearPressPiont(this.mouseDownX, this.mouseDownY, x, y)) {
+            this.handleClick(x, y);
+        }
+        
+        if (this.capturedElement) {
+            if (this.capturedElement.handleMouseUp) {
+                this.capturedElement.handleMouseUp(x, y);
+            }
+            this.capturedElement = null;
+        } else if (this.modalElements.length > 0) {
+            const topModal = this.modalElements[this.modalElements.length - 1];
+            if (topModal.handleMouseUp) {
+                topModal.handleMouseUp(x, y);
+            }
+        }
+    }
+
+    /**
+     * 处理点击事件
      */
     handleClick(x, y) {
+        // 模态模式下的点击处理
+        if (this.modalElements.length > 0) {
+            const topModal = this.modalElements[this.modalElements.length - 1];
+            if (topModal.isPointInside(x, y)) {
+                const clickedElement = this._findElementInContainer(topModal, x, y);
+                if (clickedElement && clickedElement.handleClick) {
+                    clickedElement.handleClick(x, y);
+                } else if (topModal.handleClick) {
+                    topModal.handleClick(x, y);
+                }
+            }
+            return;
+        }
+        
+        // 正常模式的点击处理
         for (let i = this.uiElements.length - 1; i >= 0; i--) {
             const element = this.uiElements[i];
             if (element.visible && element.enabled && element.isPointInside(x, y)) {
@@ -569,26 +660,59 @@ class EventHandler {
             }
         }
     }
-    handleKeyDown(e){
+
+    /**
+     * 在容器内查找元素
+     */
+    _findElementInContainer(container, x, y) {
+        if (!container.children || !container.children.length) return null;
         
+        for (let i = container.children.length - 1; i >= 0; i--) {
+            const child = container.children[i];
+            if (child.visible && child.enabled && child.isPointInside(x, y)) {
+                return child;
+            }
+        }
+        return null;
     }
 
-    handleKeyUp(e){
-        
+    handleKeyDown(e) {
+        // 键盘事件处理逻辑
+    }
+
+    handleKeyUp(e) {
+        // 键盘事件处理逻辑
     }
 
     /**
-     * 检查是否构成点击事件（按下和释放在同一位置）
-     * @param {number} pressX - 按下时的X坐标
-     * @param {number} pressY - 按下时的Y坐标
-     * @param {number} releaseX - 释放时的X坐标
-     * @param {number} releaseY - 释放时的Y坐标
-     * @param {number} threshold - 点击阈值距离
-     * @returns {boolean}
+     * 检查是否构成点击事件
      */
-    isClick(pressX, pressY, releaseX, releaseY, threshold = 5) {
+    isReleasedNearPressPiont(pressX, pressY, releaseX, releaseY, threshold = 5) {
         const distance = Math.sqrt((pressX - releaseX) ** 2 + (pressY - releaseY) ** 2);
         return distance <= threshold;
+    }
+
+    /**
+     * 显示模态弹窗
+     */
+    showModal(element) {
+        this.modalElements.push(element);
+        if (element.setModal) {
+            element.setModal(true);
+        }
+    }
+
+    /**
+     * 关闭模态弹窗
+     */
+    closeModal(element) {
+        const index = this.modalElements.indexOf(element);
+        if (index > -1) {
+            this.modalElements.splice(index, 1);
+            if (element.setModal) {
+                element.setModal(false);
+            }
+        }
     }
 
     /**
