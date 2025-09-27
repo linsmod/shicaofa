@@ -148,6 +148,16 @@ class GameScene extends Scene {
             height: 0
         };
 
+        // 缩略图Canvas系统
+        this.thumbnailCanvas = {
+            canvas: null,
+            ctx: null,
+            container: null,
+            width: 0,
+            height: 0,
+            lastDivisionData: null // 保存上次的分割结果
+        };
+
         // UI元素
         this.settingsPanel = null;
         this.gameInfoPanel = null;
@@ -155,6 +165,7 @@ class GameScene extends Scene {
         this.initStalks(49);
         this.initMultiCanvasSystem();
         this.initProgressCanvas();
+        this.initThumbnailCanvas();
         this.createUI();
         this.registerUIElements();
         this.updateDisplay();
@@ -193,6 +204,41 @@ class GameScene extends Scene {
         this.renderProgressCanvas();
         
         console.log('进度条Canvas系统初始化完成');
+    }
+
+    /**
+     * 初始化缩略图Canvas系统
+     */
+    initThumbnailCanvas() {
+        const canvasManager = this.engine.getCanvasManager();
+        const { width, height } = canvasManager.getDisplaySize();
+        
+        // 创建缩略图容器
+        this.thumbnailCanvas.container = document.createElement('div');
+        this.thumbnailCanvas.container.style.position = 'absolute';
+        this.thumbnailCanvas.container.style.left = '10px';
+        this.thumbnailCanvas.container.style.bottom = '100px';
+        this.thumbnailCanvas.container.style.width = '200px';
+        this.thumbnailCanvas.container.style.height = '150px';
+        this.thumbnailCanvas.container.style.pointerEvents = 'none';
+        this.thumbnailCanvas.container.style.zIndex = '30';
+        this.thumbnailCanvas.container.style.border = '2px solid rgba(255, 215, 0, 0.8)';
+        this.thumbnailCanvas.container.style.borderRadius = '8px';
+        this.thumbnailCanvas.container.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+        
+        // 使用CanvasManager创建缩略图Canvas
+        this.thumbnailCanvas.canvas = canvasManager.createOffscreenCanvas(190, 140);
+        this.thumbnailCanvas.ctx = this.thumbnailCanvas.canvas.getContext('2d');
+        
+        // 添加到DOM
+        const canvas = this.engine.getCanvas();
+        canvas.parentElement.appendChild(this.thumbnailCanvas.container);
+        this.thumbnailCanvas.container.appendChild(this.thumbnailCanvas.canvas);
+        
+        // 初始化缩略图内容
+        this.renderThumbnail();
+        
+        console.log('缩略图Canvas系统初始化完成');
     }
 
     /**
@@ -765,7 +811,7 @@ class GameScene extends Scene {
                     yaoValue = result.rest; // 异常情况
                     yaoType = "异常";
                 }
-                logMessage += `得${yaoType}${yaoValue}`;
+                logMessage += `为${yaoType}${yaoValue}`;
             }
         } else {
             // 如果计算失败，使用简化格式
@@ -1091,7 +1137,93 @@ class GameScene extends Scene {
         // 标记为已分割
         this.divided = true;
 
+        // 保存分割结果到缩略图
+        this.saveDivisionToThumbnail(cutLine);
+
     }
+
+    /**
+     * 保存分割结果到缩略图
+     * @param {Object} cutLine - 切分线对象
+     */
+    saveDivisionToThumbnail(cutLine) {
+        // 保存当前的分割数据
+        this.thumbnailCanvas.lastDivisionData = {
+            cutLine: cutLine,
+            stalks: this.stalks.map(stalk => ({
+                x: stalk.x,
+                y: stalk.y,
+                group: stalk.group,
+                color: stalk.color
+            })),
+            timestamp: Date.now()
+        };
+
+        // 重新渲染缩略图
+        this.renderThumbnail();
+    }
+
+    /**
+     * 渲染缩略图
+     */
+    renderThumbnail() {
+        if (!this.thumbnailCanvas.ctx || !this.thumbnailCanvas.canvas) {
+            return;
+        }
+
+        const ctx = this.thumbnailCanvas.ctx;
+        const canvas = this.thumbnailCanvas.canvas;
+        
+        // 清除Canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // 绘制背景
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // 如果有分割数据，渲染缩略图
+        if (this.thumbnailCanvas.lastDivisionData) {
+            const data = this.thumbnailCanvas.lastDivisionData;
+            const scale = 0.3; // 缩放比例
+            
+            // 绘制分割线
+            if (data.cutLine) {
+                ctx.strokeStyle = '#FFFFFF';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(
+                    data.cutLine.start.x * scale,
+                    data.cutLine.start.y * scale
+                );
+                ctx.lineTo(
+                    data.cutLine.end.x * scale,
+                    data.cutLine.end.y * scale
+                );
+                ctx.stroke();
+            }
+
+            // 绘制蓍草圆圈
+            data.stalks.forEach(stalk => {
+                ctx.fillStyle = stalk.color;
+                ctx.beginPath();
+                ctx.arc(
+                    stalk.x * scale,
+                    stalk.y * scale,
+                    3, // 缩略图中的圆圈半径
+                    0,
+                    Math.PI * 2
+                );
+                ctx.fill();
+            });
+
+            // 添加标签
+            ctx.fillStyle = '#FFD700';
+            ctx.font = '12px "Microsoft YaHei", sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText('上次分割', 5, 15);
+        }
+    }
+
     pointToLineSignedDistance(px, py, x1, y1, x2, y2) {
         const lineVecX = x2 - x1;
         const lineVecY = y2 - y1;
