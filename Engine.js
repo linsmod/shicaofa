@@ -31,7 +31,7 @@ class GameEngine {
             enablePixelAlignment: true,
             enableImageSmoothing: true,
             imageSmoothingQuality: 'high',
-            backgroundColor: '#228B22'
+            // backgroundColor: '#228B22'
         })) {
             throw new Error('Failed to initialize CanvasManager');
         }
@@ -196,6 +196,9 @@ class GameEngine {
             isReleased: false,
             moved: false,
         };
+        this.windowState={
+            rect:null,
+        }
         this.keyState={
             keydown:null,
             keyup:null,
@@ -225,6 +228,13 @@ class GameEngine {
             this.mouseState.x = e.clientX - rect.left;
             this.mouseState.y = e.clientY - rect.top;
             this.mouseState.isPressed = true;
+        });
+
+        window.addEventListener('resize',e=>{
+            debugger;
+             const rect = this.canvas.getBoundingClientRect();
+             this.windowState.rect = rect;
+             this.windowState.sizeChanged = true;
         });
 
         // 鼠标释放事件
@@ -319,7 +329,7 @@ class SceneManager {
         const newScene = this.scenes.get(name);
         newScene.onStart(lastSceneResult);
         
-        console.log(`Switched to scene '${name}'`);
+        // console.log(`Switched to scene '${name}'`);
     }
 
     /**
@@ -682,7 +692,8 @@ class Scene extends UIElement {
         this.name = name;
         this.sceneManager = null;
         this.engine = null;
-        this.backgroundColor = '#228B22';
+        this.backgroundColor = '#33333333';
+        // this.backgroundColor = "linear-gradient(to bottom, #2E8B57, #333333)"
         this.isInitialized = false;
         this.children = []; // 存储所有UI元素
         this.dialogs = [];
@@ -798,6 +809,38 @@ class Scene extends UIElement {
         if (index > -1) {
             this.children.splice(index, 1);
         }
+    }
+    clearRect(ctx, x,y,w,h,c){
+        if(!this.offsetX){
+            this.offsetX =1;
+            this.offsetY =1;
+        }
+        this.offsetX+=1;
+        this.offsetY+=2;
+        const drawX = x + this.offsetX % w;
+        const drawY = h + this.offsetY % h;
+        if (c.startsWith('linear-gradient')) {
+            // 解析渐变字符串中的颜色值
+            const gradientMatch = c.match(/linear-gradient\([^,]+,\s*([^,]+),\s*([^)]+)\)/);
+            if (gradientMatch) {
+                const color1 = gradientMatch[1].trim();
+                const color2 = gradientMatch[2].trim();
+                const gradient = ctx.createLinearGradient(drawX, drawY, drawX, drawY);
+                gradient.addColorStop(0, color2);
+                gradient.addColorStop(1, color1);
+                ctx.fillStyle = gradient;
+            } else {
+                // 如果解析失败，使用默认颜色
+                const gradient = ctx.createLinearGradient(drawX, drawY, drawX, drawY);
+                gradient.addColorStop(0, '#A0522D');
+                gradient.addColorStop(1, '#8B4513');
+                ctx.fillStyle = gradient;
+            }
+        } else {
+            ctx.fillStyle = c;
+        }
+        ctx.fillStyle = this.backgroundColor;
+        ctx.fillRect(x, y, w, h);
     }
 }
 

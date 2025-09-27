@@ -5,6 +5,19 @@
 /**
  * 开始场景
  */
+const colorSets = [
+  ['#FFD700', '#FF6347', '#32CD32', '#1E90FF', '#FF69B4', '#FFA500'],
+  ['#FF6B6B', '#4ECDC4', '#FFE66D', '#6A0572', '#1A535C', '#FF9F1C'],
+  ['#FF9AA2', '#FFB7B2', '#FFDAC1', '#E2F0CB', '#B5EAD7', '#C7CEEA'],
+  ['#FF0080', '#00FF87', '#00E0FF', '#FFCE00', '#FF3C00', '#9D00FF'],
+  ['#8B4513', '#228B22', '#DAA520', '#8B7355', '#2F4F4F', '#CD853F'],
+  ['#FF0000', '#FF7F00', '#FFFF00', '#00FF00', '#0000FF', '#8B00FF'],
+  ['#00FFFF', '#4B0082', '#00FF7F', '#1E90FF', '#8A2BE2', '#00CED1'],
+  ['#FF4500', '#FF8C00', '#FFD700', '#FF6347', '#FFA500', '#FF69B4']
+];
+function getRandomColorSet() {
+  return colorSets[Math.floor(Math.random() * colorSets.length)];
+}
 class StartScene extends Scene {
     constructor() {
         super('start');
@@ -57,20 +70,20 @@ class StartScene extends Scene {
     }
 
     render(ctx, width, height) {
-        // 绘制背景
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-        ctx.fillRect(0, 0, width, height);
+       super.clearRect(ctx,0,0,width,height,this.backgroundColor);
 
-        // 绘制标题
-        ctx.fillStyle = '#FFD700';
-        ctx.font = 'bold 2rem "Microsoft YaHei", sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(this.title, width / 2, height / 2 - 50);
 
-        // 绘制副标题
-        ctx.fillStyle = '#fff';
-        ctx.font = '1.1rem "Microsoft YaHei", sans-serif';
-        ctx.fillText(this.subtitle, width / 2, height / 2);
+       // 绘制标题
+       ctx.fillStyle = '#FFD700';
+       ctx.font = 'bold 2rem "Microsoft YaHei", sans-serif';
+       ctx.textAlign = 'center';
+       ctx.fillText(this.title, width / 2, height / 2 - 50);
+
+       // 绘制副标题
+       ctx.fillStyle = '#fff';
+       ctx.font = '1.1rem "Microsoft YaHei", sans-serif';
+       ctx.fillText(this.subtitle, width / 2, height / 2);
+       
 
         // 渲染开始按钮 - 根据实际显示尺寸设置按钮位置
         if (this.startButton) {
@@ -203,7 +216,7 @@ class GameScene extends Scene {
         // 初始化进度条内容
         this.renderProgressCanvas();
         
-        console.log('进度条Canvas系统初始化完成');
+        // console.log('进度条Canvas系统初始化完成');
     }
 
     /**
@@ -218,16 +231,17 @@ class GameScene extends Scene {
         this.thumbnailCanvas.container.style.position = 'absolute';
         this.thumbnailCanvas.container.style.left = '10px';
         this.thumbnailCanvas.container.style.bottom = '100px';
-        this.thumbnailCanvas.container.style.width = '200px';
-        this.thumbnailCanvas.container.style.height = '150px';
+        // this.thumbnailCanvas.container.style.width = '200px';
+        // this.thumbnailCanvas.container.style.height = '150px';
         this.thumbnailCanvas.container.style.pointerEvents = 'none';
         this.thumbnailCanvas.container.style.zIndex = '30';
-        this.thumbnailCanvas.container.style.border = '2px solid rgba(255, 215, 0, 0.8)';
-        this.thumbnailCanvas.container.style.borderRadius = '8px';
-        this.thumbnailCanvas.container.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-        
+        this.thumbnailCanvas.container.style.border = '3px solid rgba(255, 215, 0, 0.8)';
+        this.thumbnailCanvas.container.style.borderRadius = '10px';
+        this.thumbnailCanvas.container.style.backgroundColor = 'rgba(63, 63, 63, 0.8)';
+        this.thumbnailCanvas.container.style.padding="3px"
+        this.thumbnailCanvas.scale = 0.2;
         // 使用CanvasManager创建缩略图Canvas
-        this.thumbnailCanvas.canvas = canvasManager.createOffscreenCanvas(190, 140);
+        this.thumbnailCanvas.canvas = canvasManager.createOffscreenCanvas(width*0.2, height*0.2);
         this.thumbnailCanvas.ctx = this.thumbnailCanvas.canvas.getContext('2d');
         
         // 添加到DOM
@@ -238,7 +252,7 @@ class GameScene extends Scene {
         // 初始化缩略图内容
         this.renderThumbnail();
         
-        console.log('缩略图Canvas系统初始化完成');
+        // console.log('缩略图Canvas系统初始化完成');
     }
 
     /**
@@ -381,7 +395,7 @@ class GameScene extends Scene {
         // 创建粒子效果
         this.createCutParticles(cutLine);
 
-        console.log('切分特效启动，法线方向:', this.effectSystem.exitDirection);
+        // console.log('切分特效启动，法线方向:', this.effectSystem.exitDirection);
     }
 
     /**
@@ -397,7 +411,7 @@ class GameScene extends Scene {
         const diagonal = Math.sqrt(displayWidth * displayWidth + displayHeight * displayHeight);
         this.effectSystem.maxSeparation = diagonal;
         
-        console.log(`计算的最大分离距离: ${this.effectSystem.maxSeparation}px (对角线: ${diagonal}px)`);
+        // console.log(`计算的最大分离距离: ${this.effectSystem.maxSeparation}px (对角线: ${diagonal}px)`);
         
         // 创建容器div
         this.effectSystem.canvi = document.createElement('div');
@@ -445,7 +459,7 @@ class GameScene extends Scene {
         // 标记为已初始化
         this.effectSystem.isMultiCanvasInitialized = true;
         
-        console.log('多Canvas裁剪系统初始化完成，包含OffscreenCanvas');
+        // console.log('多Canvas裁剪系统初始化完成，包含OffscreenCanvas');
     }
 
     /**
@@ -898,7 +912,7 @@ class GameScene extends Scene {
             const y = padding + Math.random() * (displayHeight - 2 * padding);
 
             // 为不同组的圆圈设置不同的颜色
-            const colors = ['#FFD700', '#FF6347', '#32CD32', '#1E90FF', '#FF69B4', '#FFA500'];
+            const colors = getRandomColorSet();
             const color = colors[i % colors.length];
 
             this.stalks.push({
@@ -1052,6 +1066,9 @@ class GameScene extends Scene {
         const centerX = displayWidth / 2;
         const centerY = displayHeight / 2;
 
+        // const centerX = startPoint.x + lineVecX/2;
+        // const centerY = startPoint.y + lineVecY/2;
+
         // 根据斜率创建通过画布中心的切分线
         let cutLine;
         if (slope === Infinity) {
@@ -1111,7 +1128,7 @@ class GameScene extends Scene {
      */
     groupByLine(cutLine) {
 
-        console.log("groupByLine",cutLine);
+        // console.log("groupByLine",cutLine);
         // 根据切分线划分蓍草
         this.stalks.forEach(stalk => {
             const distance = this.pointToLineSignedDistance(
@@ -1138,7 +1155,7 @@ class GameScene extends Scene {
         this.divided = true;
 
         // 保存分割结果到缩略图
-        this.saveDivisionToThumbnail(cutLine);
+        this.setThumbnailData(cutLine);
 
     }
 
@@ -1146,7 +1163,7 @@ class GameScene extends Scene {
      * 保存分割结果到缩略图
      * @param {Object} cutLine - 切分线对象
      */
-    saveDivisionToThumbnail(cutLine) {
+    setThumbnailData(cutLine) {
         // 保存当前的分割数据
         this.thumbnailCanvas.lastDivisionData = {
             cutLine: cutLine,
@@ -1181,11 +1198,17 @@ class GameScene extends Scene {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+        if(!this.thumbnailCanvas.lastDivisionData){
+            this.thumbnailCanvas.lastDivisionData = {
+                stalks:this.stalks
+            }
+        }
         // 如果有分割数据，渲染缩略图
         if (this.thumbnailCanvas.lastDivisionData) {
             const data = this.thumbnailCanvas.lastDivisionData;
-            const scale = 0.3; // 缩放比例
-            
+            const scale = 0.2; // 缩放比例
+            ctx.fillStyle =  '#333333';
+            ctx.fillRect(0,0,ctx.canvas.width,ctx.canvas.height);
             // 绘制分割线
             if (data.cutLine) {
                 ctx.strokeStyle = '#FFFFFF';
@@ -1218,9 +1241,11 @@ class GameScene extends Scene {
 
             // 添加标签
             ctx.fillStyle = '#FFD700';
-            ctx.font = '12px "Microsoft YaHei", sans-serif';
+            ctx.font = '10px "Microsoft YaHei", sans-serif';
             ctx.textAlign = 'left';
             ctx.fillText('上次分割', 5, 15);
+            ctx.canvas.style.width = ctx.canvas.width+"px";
+            ctx.canvas.style.height = ctx.canvas.height+"px";
         }
     }
 
@@ -1255,13 +1280,13 @@ class GameScene extends Scene {
         const dotProduct = lineVecX * normalX + lineVecY * normalY;
         const normalLength = Math.sqrt(normalX * normalX + normalY * normalY);
 
-        console.log('法线方向验证:', {
-            lineVector: { x: lineVecX, y: lineVecY },
-            normalVector: { x: normalX, y: normalY },
-            dotProduct: dotProduct, // 应该接近0
-            normalLength: normalLength, // 应该接近1
-            isValid: Math.abs(dotProduct) < 0.001 && Math.abs(normalLength - 1) < 0.001
-        });
+        // console.log('法线方向验证:', {
+        //     lineVector: { x: lineVecX, y: lineVecY },
+        //     normalVector: { x: normalX, y: normalY },
+        //     dotProduct: dotProduct, // 应该接近0
+        //     normalLength: normalLength, // 应该接近1
+        //     isValid: Math.abs(dotProduct) < 0.001 && Math.abs(normalLength - 1) < 0.001
+        // });
 
         return {
             normalX: normalX,
@@ -1276,10 +1301,7 @@ class GameScene extends Scene {
     }
 
     render(ctx, width, height) {
-        ctx.fillStyle = '#228B22';
-        ctx.fillRect(0, 0, width, height);
-
-      
+        super.clearRect(ctx,0,0,width,height,this.backgroundColor);
 
             // 绘制蓍草（圆点）
             this.drawStalks(ctx);
@@ -1424,21 +1446,6 @@ class GameScene extends Scene {
         }
     }
 
-    restartGame() {
-        this.state = 'dividing';
-        this.divided = false;
-        this.yaos = [];
-
-        this.logs = [];
-        this.updateDisplay();
-
-        this.addLog("游戏重新开始");
-
-        if (this.sceneManager) {
-            this.sceneManager.switchToScene('game');
-        }
-    }
-
 
     showLogs() {
         if (this.sceneManager) {
@@ -1483,6 +1490,7 @@ class ResultScene extends Scene {
         this.restartButton = null;
         this.newGameButton = null;
         this.guaDisplay = null;
+        this.backgroundColor = '#333333'
         this.yaos = [];
         this.guaData = null; // 缓存卦象数据
         this.isGuaDataCalculated = false; // 标记是否已计算
@@ -1539,6 +1547,20 @@ class ResultScene extends Scene {
         console.log(`Scene '${this.name}' entered`);
     }
 
+
+    startNewGame() {
+        this.nextScene = 'start';
+    }
+    
+
+    restartGame() {
+        this.state = 'dividing';
+        this.divided = false;
+        this.yaos = [];
+
+        this.logs = [];
+        this.nextScene = 'game';
+    }
     createUI() {
         const canvasManager = this.engine.getCanvasManager();
         const size = canvasManager.getDisplaySize();
@@ -1596,45 +1618,37 @@ class ResultScene extends Scene {
         }
 
         // 如果还没有计算过或者yaos数据有变化，才重新计算
-        if (!this.isGuaDataCalculated || this.yaos !== yaos) {
-            this.guaData = this.calculateGuaFromYaos(yaos);
-            this.isGuaDataCalculated = true;
-
-            // 计算变卦
-            const changingYaos = StalksAlgorithm.calculateChangingGua(yaos);
-            const changingGuaData = this.calculateGuaFromYaos(changingYaos);
-
-            // 设置卦象数据到GuaDisplay组件（同时传递本卦和变卦数据）
-            if (this.guaDisplay) {
-                this.guaDisplay.setGuaData(
-                    this.guaData.name,
-                    this.guaData.symbol,
-                    yaos,
-                    {
-                        name: changingGuaData.name,
-                        symbol: changingGuaData.symbol,
-                        yaos: changingYaos
-                    }
-                );
-                this.guaDisplay.setVisible(true);
-            }
-
-            // 输出结果到控制台
-            // console.log(`本卦：${this.guaData.interpretation}`);
-            // console.log(`卦象：${this.guaData.symbolism}`);
-            // console.log(`建议：${this.guaData.advice}`);
-
-            // 获取变爻信息
-            // const changingYaoIndices = yaos
-            //     .map((yao, index) => yao === 9 || yao === 6 ? index + 1 : null)
-            //     .filter(yao => yao !== null);
-
-            // if (changingYaoIndices.length > 0 && window.StalksAlgorithm) {
-            //     const advice = window.StalksAlgorithm.getChangingYaoAdvice(changingYaoIndices);
-            //     console.log(`变爻提示：${advice}`);
-            //     console.log(`变卦：${changingGuaData.name} (${changingGuaData.symbol})`);
-            // }
+        this.guaData = this.calculateGuaFromYaos(yaos);
+        // 计算变卦
+        const changingYaos = StalksAlgorithm.calculateChangingGua(yaos);
+        const changingGuaData = this.calculateGuaFromYaos(changingYaos);
+        // 设置卦象数据到GuaDisplay组件（同时传递本卦和变卦数据）
+        if (this.guaDisplay) {
+            this.guaDisplay.setGuaData(
+                this.guaData.name,
+                this.guaData.symbol,
+                yaos,
+                {
+                    name: changingGuaData.name,
+                    symbol: changingGuaData.symbol,
+                    yaos: changingYaos
+                }
+            );
+            this.guaDisplay.setVisible(true);
         }
+        // 输出结果到控制台
+        // console.log(`本卦：${this.guaData.interpretation}`);
+        // console.log(`卦象：${this.guaData.symbolism}`);
+        // console.log(`建议：${this.guaData.advice}`);
+        // 获取变爻信息
+        // const changingYaoIndices = yaos
+        //     .map((yao, index) => yao === 9 || yao === 6 ? index + 1 : null)
+        //     .filter(yao => yao !== null);
+        // if (changingYaoIndices.length > 0 && window.StalksAlgorithm) {
+        //     const advice = window.StalksAlgorithm.getChangingYaoAdvice(changingYaoIndices);
+        //     console.log(`变爻提示：${advice}`);
+        //     console.log(`变卦：${changingGuaData.name} (${changingGuaData.symbol})`);
+        // }
     }
 
     calculateGuaFromYaos(yaos) {
@@ -1643,9 +1657,8 @@ class ResultScene extends Scene {
     }
 
     render(ctx, width, height) {
-        // 绘制背景
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-        ctx.fillRect(0, 0, width, height);
+        super.clearRect(ctx,0,0,width,height,this.backgroundColor);
+
 
         // 绘制标题
         ctx.fillStyle = '#FFD700';
@@ -1661,12 +1674,6 @@ class ResultScene extends Scene {
         // 渲染UI元素
         if (this.restartButton) this.restartButton.render(ctx);
         if (this.newGameButton) this.newGameButton.render(ctx);
-    }
-
-    // restartGame 方法已在前面定义，这里删除重复定义
-
-    startNewGame() {
-        this.nextScene = 'start';
     }
 }
 
