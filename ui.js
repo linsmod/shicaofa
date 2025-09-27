@@ -448,14 +448,6 @@ class GameInfoPanel extends UIElement {
         ctx.font = 'bold 0.9rem "Microsoft YaHei", sans-serif';
         ctx.fillText(this.rightCount.toString(), rightX, handStatusY + 15);
 
-        // 一旁
-        ctx.fillStyle = '#FFD700';
-        ctx.font = '0.8rem "Microsoft YaHei", sans-serif';
-        ctx.fillText('一旁', handX, handStatusY);
-        ctx.fillStyle = '#FF69B4';
-        ctx.font = 'bold 0.9rem "Microsoft YaHei", sans-serif';
-        ctx.fillText(this.handCount.toString(), handX, handStatusY + 15);
-
         // 绘制算法信息
         ctx.fillStyle = '#FFD700';
         ctx.font = '0.7rem "Microsoft YaHei", sans-serif';

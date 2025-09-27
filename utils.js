@@ -263,105 +263,52 @@ class MathUtils {
  * 蓍草法算法工具类
  */
 class StalksAlgorithm {
-    /**
-     * 执行蓍草法的一变
-     * @param {number} currentStalks - 当前蓍草数量
-     * @param {number} currentChange - 当前变的次数 (0,1,2)
-     * @param {number} currentYao - 当前爻的次数 (0-5)
-     * @param {Array} changeResults - 存储每变的结果
-     * @param {Function} addLog - 日志添加函数
-     * @returns {Object} 结果对象
-     */
-    /**
-     * 执行蓍草法的一变（模拟手动切分方式）
-     * @param {number} currentStalks - 当前蓍草数量
-     * @param {number} currentChange - 当前变的次数 (0,1,2)
-     * @param {number} currentYao - 当前爻的次数 (0-5)
-     * @param {Array} changeResults - 存储每变的结果
-     * @param {Array} leftGroup - 左组蓍草数组
-     * @param {Array} rightGroup - 右组蓍草数组
-     * @param {Function} addLog - 日志添加函数
-     * @returns {Object} 结果对象
-     */
-    static performChangeManual(currentStalks, currentChange, currentYao, changeResults, leftGroup, rightGroup, addLog) {
-        if (currentStalks < 4) {
-            addLog(`错误：蓍草数量不足，剩余${currentStalks}根，无法继续`, 'error');
-            return null;
+
+    static badinput(){
+        return {"error":"bad input"};
+    }
+    
+    // 三变才能生成一个爻
+    static doYaoStep(input,left,right,lastout){
+        let stepnum = lastout && lastout.nextStep || 1;
+        switch(stepnum){
+            case 1: return StalksAlgorithm.doYaoStepNext(input,left,right,{rest:49,nextStep:1,results:[]});
+            case 2: return StalksAlgorithm.doYaoStepNext(input,left,right,lastout);
+            case 3: return StalksAlgorithm.doYaoStepNext(input,left,right,lastout);
+            default: return {"error":"bad step"};
         }
-
-        let leftCount, rightCount;
-
-        // 根据蓍草法规则，第一变必须从49根开始
-        if (currentChange === 0 && currentStalks !== 49) {
-            currentStalks = 49;
-            // 注释掉重复的日志记录，因为已在scenes.js中记录
-            // 转换为传统爻名
-            // const traditionalYaoNames = ['', '初', '二', '三', '四', '五', '上'];
-            // const yaoName = traditionalYaoNames[currentYao + 1];
-            // addLog(`重新开始${yaoName}爻，使用49根蓍草`);
+    }
+    static doYaoStepNext(input,left,right,last){
+        if(input!=last.rest){
+            return this.badinput();
         }
-
-        // 使用实际的切分结果而不是随机数
-        if (leftGroup && rightGroup && leftGroup.length + rightGroup.length === currentStalks) {
-            leftCount = leftGroup.length;
-            rightCount = rightGroup.length;
-        } else {
-            // 如果没有切分数据，使用模拟切分
-            const cutRatio = MathUtils.betterRandom(0.3, 0.7); // 切分比例在30%-70%之间
-            leftCount = Math.round(currentStalks * cutRatio);
-            rightCount = currentStalks - leftCount;
+        if(left+right!=last.rest){
+           return this.badinput();
         }
-
-        // 挂一：从左堆取出一根
-        const hangYi = 1;
-        leftCount -= hangYi;
-        // 揲四：计算余数（以4根一组）
-        const leftRemainder = leftCount % 4;
-        const rightRemainder = rightCount % 4;
-
-        // 根据蓍草法规则，余数可能是1、2、3、4（整除时视为余4）
-        const adjustedLeftRemainder = leftRemainder === 0 ? 4 : leftRemainder;
-        const adjustedRightRemainder = rightRemainder === 0 ? 4 : rightRemainder;
-
-        // 归奇：余数之和应该是4或8
-        const totalRemainder = adjustedLeftRemainder + adjustedRightRemainder;
-
-        // 验证余数之和是否符合蓍草法规则
-        // 注意：由于第一变后剩余44或40根，第二变和第三变的余数之和规则可能不同
-        if (currentChange === 0 && totalRemainder !== 4 && totalRemainder !== 8) {
-            // 转换为传统爻名
-            const traditionalYaoNames = ['', '初', '二', '三', '四', '五', '上'];
-            const yaoName = traditionalYaoNames[currentYao + 1];
-            addLog(`错误：${yaoName}爻第${currentChange + 1}变的余数之和异常(${totalRemainder})，应该是4或8`, 'error');
-            return null;
+        if(left==0 || right==0)
+        {
+           return this.badinput();
         }
-
-        // 移除挂一和余数的根数
-        const removeStalks = hangYi + totalRemainder;
-        const remainingStalks = currentStalks - removeStalks;
-
-        const changeType = currentChange + 1;
-        const yaoType = currentYao + 1;
-        // 注释掉重复的日志记录，因为已在scenes.js中记录
-        // addLog(`第${yaoType}爻第${changeType}变：分二左${leftCount + hangYi}右${rightCount}，挂一1根，揲四左余${adjustedLeftRemainder}右余${adjustedRightRemainder}，归奇${totalRemainder}，移除${removeStalks}根，剩余${remainingStalks}根，本爻已挂${totalAsideStalks}根`);
-
-        changeResults.push({
-            leftCount: leftCount + hangYi,
-            rightCount: rightCount,
-            leftRemainder: adjustedLeftRemainder,
-            rightRemainder: adjustedRightRemainder,
-            totalRemainder: totalRemainder,
-            removedStalks: removeStalks,
-            remainingStalks: remainingStalks
-        });
-
-        return {
-            remainingStalks,
-            asideStalks: totalRemainder,
-            leftRemainder: adjustedLeftRemainder,
-            rightRemainder: adjustedRightRemainder,
-            totalRemainder: totalRemainder,
-            success: true
+        let leftsub = left % 4;
+        if(leftsub==0)
+            leftsub=4;
+        let rightsub =  (right-1) % 4;
+        if(rightsub==4)
+            rightsub=4;
+        rightsub = rightsub +1;
+        let totalsub = leftsub+rightsub/* 右去1*/;
+        let rest = input-totalsub;
+        let results = Array.from(last.results);
+        results.push(rest);
+        return{
+            rest,
+            leftrest:left-leftsub,
+            rightrest:right-rightsub,
+            leftsub,
+            rightsub,
+            totalsub,
+            nextStep:last.nextStep+1,
+            results:results
         };
     }
 
@@ -371,24 +318,23 @@ class StalksAlgorithm {
      * @param {Function} addLog - 日志添加函数
      * @returns {number} 爻值
      */
-    static calculateYaoValue(changeResults, addLog) {
-        const lastChange = changeResults[changeResults.length - 1];
-        const remainingStalks = lastChange.remainingStalks;
+    static calculateYaoValue(lastresult, addLog) {
+        const rest = lastresult.rest;
 
         let yaoValue;
         let yaoType;
 
         // 根据蓍草法规则，第三变后的剩余数量只能是24、28、32、36
-        if (remainingStalks === 36) {
+        if (rest === 36) {
             yaoValue = 9; // 老阳 ⚊○
             yaoType = "老阳(⚊○)";
-        } else if (remainingStalks === 32) {
+        } else if (rest === 32) {
             yaoValue = 8; // 少阴 ⚋
             yaoType = "少阴(⚋)";
-        } else if (remainingStalks === 28) {
+        } else if (rest === 28) {
             yaoValue = 7; // 少阳 ⚊
             yaoType = "少阳(⚊)";
-        } else if (remainingStalks === 24) {
+        } else if (rest === 24) {
             yaoValue = 6; // 老阴 ⚋○
             yaoType = "老阴(⚋○)";
         } else {
@@ -397,15 +343,9 @@ class StalksAlgorithm {
             // 转换为传统爻名
             const traditionalYaoNames = ['', '初', '二', '三', '四', '五', '上'];
             const yaoName = traditionalYaoNames[yaoNumber];
-            addLog(`错误：${yaoName}爻剩余蓍草数量异常(${remainingStalks})，应该是24、28、32或36根`, 'error');
+            addLog(`错误：${yaoName}爻剩余蓍草数量异常(${rest})，应该是24、28、32或36根`, 'error');
             return null;
         }
-
-        const yaoNumber = Math.floor(changeResults.length / 3);
-        const totalAsideStalks = changeResults.reduce((sum, result) => sum + result.totalRemainder, 0) + 3; // 每变挂一1根，共3变
-        // 注释掉重复的日志记录，因为已在scenes.js中记录
-        // addLog(`第${yaoNumber}爻：第三变后剩余${remainingStalks}根，得${yaoType}，本爻总挂${totalAsideStalks}根`);
-
         return yaoValue;
     }
 

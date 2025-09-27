@@ -277,20 +277,10 @@ class GameEngine {
 class SceneManager {
     constructor(engine) {
         this.engine = engine;
-        this.dialog = null;
         this.scenes = new Map();
         this.currentSceneName = null;
         this.canvasWidth = 0;
         this.canvasHeight = 0;
-    }
-
-    setDialog(dialog){
-        this.dialog = dialog;
-    }
-    closeDialog(dialog){
-        if(this.dialog == dialog){
-            this.dialog = null;
-        }
     }
 
     /**
@@ -319,13 +309,15 @@ class SceneManager {
         // 退出当前场景
         if (this.currentSceneName && this.scenes.has(this.currentSceneName)) {
             const currentScene = this.scenes.get(this.currentSceneName);
-            lastSceneResult = currentScene.onExit();
+            lastSceneResult = currentScene.sceneResult;
+            currentScene.sceneResult = null;
+            currentScene.onExit();
         }
 
         // 切换到新场景
         this.currentSceneName = name;
         const newScene = this.scenes.get(name);
-        newScene.onEnter(lastSceneResult);
+        newScene.onStart(lastSceneResult);
         
         console.log(`Switched to scene '${name}'`);
     }
@@ -390,6 +382,7 @@ class UIEventSystem {
         this.pressX = 0;                   // 记录按下时的坐标，用于拖拽判断
         this.pressY = 0;
         this.dragThreshold = 5;            // 拖拽触发的最小位移（像素）
+        this.dialogObject = null;
     }
 
     /**
@@ -397,7 +390,7 @@ class UIEventSystem {
      */
     processMouseDown(layer, x, y) {
         const hitObject = this.elementAt(layer, x, y);
-        console.log('hitObject',hitObject,[hitObject.x,hitObject.y,hitObject.width,hitObject.height]);
+        console.log('MouseDown hit',hitObject);
         if (hitObject) {
             // 记录按下位置，用于后续拖拽判断
             this.pressX = x;
@@ -406,9 +399,11 @@ class UIEventSystem {
             // 设置状态
             this.capturedObject = hitObject;
             this.pressedObject = hitObject;
+            this.hoveredObject = hitObject;
 
             // 标记为按下状态
             hitObject.isPressed = true;
+            hitObject.isHovered = true;
 
             // 如果可拖拽，暂不立即开始拖拽，等待 move 判断是否超过阈值
             if (hitObject.draggable) {
@@ -431,12 +426,13 @@ class UIEventSystem {
     processMouseMove(layer, x, y) {
         // 优先处理拖拽
         if (this.draggingObject) {
+            console.log('MouseMove onDrag',this.draggingObject);
             this.draggingObject.onDrag(x, y);
             return;
         }
 
         // 处理按压状态：判断是否开始拖拽
-        if (this.pressedObject && this.pressedObject.draggable) {
+        if (this.pressedObject && this.pressedObject.onDragStart) {
             const dx = x - this.pressX;
             const dy = y - this.pressY;
             const distanceSquared = dx * dx + dy * dy;
@@ -444,8 +440,8 @@ class UIEventSystem {
             if (distanceSquared >= this.dragThreshold * this.dragThreshold) {
                 // 开始拖拽
                 this.draggingObject = this.pressedObject;
-                if (this.pressedObject.startDrag) {
-                    this.pressedObject.startDrag(this.pressX, this.pressY); // 使用按下点
+                if (this.pressedObject.onDragStart) {
+                    this.pressedObject.onDragStart(this.pressX, this.pressY); // 使用按下点
                 }
                 return;
             }
@@ -455,6 +451,7 @@ class UIEventSystem {
         const newHovered = this.elementAt(layer, x, y); // 注意：你需要传 layer 进来，或保存引用
 
         if (newHovered !== this.hoveredObject) {
+            
             // 退出旧悬停对象
             if (this.hoveredObject) {
                 if (this.hoveredObject.onMouseLeave) {
@@ -465,18 +462,22 @@ class UIEventSystem {
 
             // 进入新悬停对象
             if (newHovered) {
+                newHovered.isHovered = true; 
                 if (newHovered.onMouseEnter) {
                     newHovered.onMouseEnter(x, y);
                 }
-                newHovered.isHovered = true; // ✅ 立即设置 isHovered
             }
 
             this.hoveredObject = newHovered;
+            console.log('MouseMove newHovered',newHovered);
         }
 
         // 触发当前悬停对象的移动事件
-        if (this.hoveredObject && this.hoveredObject.onMouseMove) {
+        if (this.hoveredObject) {
+            console.log('MouseMove ',this.hoveredObject);
+            if(this.hoveredObject.onMouseMove){
             this.hoveredObject.onMouseMove(x, y);
+            }
         }
     }
 
@@ -486,8 +487,9 @@ class UIEventSystem {
     processMouseUp(layer, x, y) {
         // 1. 结束拖拽
         if (this.draggingObject) {
-            if (this.draggingObject.endDrag) {
-                this.draggingObject.endDrag(x, y);
+            if (this.draggingObject.onDragEnd) {
+                console.log('MouseUp endDrag',this.draggingObject);
+                this.draggingObject.onDragEnd(x, y);
             }
             this.draggingObject = null;
         }
@@ -507,6 +509,7 @@ class UIEventSystem {
             if (!this.draggingObject) {
                 const currentHover = this.elementAt(layer, x, y); // 同样需要 layer
                 if (currentHover === wasPressed && wasPressed.onClick) {
+                    console.log('MouseUp onClick',wasPressed);
                     wasPressed.onClick(x, y);
                 }
             }
@@ -531,7 +534,6 @@ class UIEventSystem {
                     else if (this.hitTest(obj, x, y)){
                         return obj;
                     }
-                         
                 }
             }
         }
@@ -729,7 +731,7 @@ class Scene extends UIElement {
     /**
      * 场景进入时调用
      */
-    onEnter() {
+    onStart() {
         if (!this.isInitialized) {
             this.init();
             this.isInitialized = true;
@@ -803,7 +805,6 @@ class Scene extends UIElement {
 if (typeof window !== 'undefined') {
     window.GameEngine = GameEngine;
     window.SceneManager = SceneManager;
-    window.Renderer = Renderer;
     window.Scene = Scene;
     window.UIElement = UIElement;
 }
