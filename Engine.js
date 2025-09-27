@@ -718,6 +718,122 @@ class EventHandler {
 }
 
 /**
+ * UI元素基类
+ */
+class UIElement {
+    constructor(x, y, width, height) {
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+        this.visible = true;
+        this.enabled = true;
+        this.isHovered = false;
+        this.isPressed = false;
+        this.backgroundColor = '';
+        this.children = [];
+    }
+    getBackgroundColor(){
+        return this.backgroundColor;
+    }
+
+    /**
+     * 渲染UI元素
+     * @param {CanvasRenderingContext2D} ctx - Canvas上下文
+     */
+    render(ctx) {
+        // 子类实现具体的渲染逻辑
+    }
+
+    /**
+     * 检查点击是否在UI元素范围内
+     * @param {number} x - 点击X坐标
+     * @param {number} y - 点击Y坐标
+     * @returns {boolean}
+     */
+    isPointInside(x, y) {
+        return x >= this.x && x <= this.x + this.width &&
+               y >= this.y && y <= this.y + this.height;
+    }
+
+    /**
+     * 处理鼠标按下 - 子类可重写
+     */
+    handleMouseDown(x, y) {
+        this.isPressed = true;
+    }
+
+    /**
+     * 处理鼠标释放 - 子类可重写
+     */
+    handleMouseUp(x, y) {
+        this.isPressed = false;
+    }
+
+    /**
+     * 处理鼠标移动 - 子类可重写
+     */
+    handleMouseMove(x, y) {
+        // 子类实现具体的鼠标移动逻辑
+    }
+
+    /**
+     * 处理鼠标进入 - 子类可重写
+     */
+    handleMouseEnter(x, y) {
+        this.isHovered = true;
+    }
+
+    /**
+     * 处理鼠标离开 - 子类可重写
+     */
+    handleMouseLeave() {
+        this.isHovered = false;
+        this.isPressed = false;
+    }
+
+    /**
+     * 处理点击 - 子类可重写
+     */
+    handleClick(x, y) {
+        // 子类实现具体的点击逻辑
+    }
+
+    
+    handleKeyDown(e){
+        
+    }
+
+    handleKeyUp(e){
+        
+    }
+
+    update(deltaTime) {
+       this.children.forEach(element => {
+            if (element.visible && element.update) {
+                element.update(deltaTime);
+            }
+        });
+    }
+
+    /**
+     * 设置UI元素可见性
+     * @param {boolean} visible - 是否可见
+     */
+    setVisible(visible) {
+        this.visible = visible;
+    }
+
+    /**
+     * 设置UI元素可用性
+     * @param {boolean} enabled - 是否可用
+     */
+    setEnabled(enabled) {
+        this.enabled = enabled;
+    }
+}
+
+/**
  * 场景基类
  */
 class Scene extends UIElement {
@@ -822,125 +938,6 @@ class Scene extends UIElement {
         if (index > -1) {
             this.children.splice(index, 1);
         }
-    }
-}
-
-/**
- * UI元素基类
- */
-class UIElement {
-    constructor(x, y, width, height) {
-        this.x = x;
-        this.y = y;
-        this.width = width;
-        this.height = height;
-        this.visible = true;
-        this.enabled = true;
-        this.isHovered = false;
-        this.isPressed = false;
-        this.backgroundColor = '';
-        this.children = [];
-    }
-    getBackgroundColor(){
-        return this.backgroundColor;
-    }
-
-    /**
-     * 渲染UI元素
-     * @param {CanvasRenderingContext2D} ctx - Canvas上下文
-     */
-    render(ctx) {
-        // 子类实现具体的渲染逻辑
-    }
-
-    /**
-     * 检查点击是否在UI元素范围内
-     * @param {number} x - 点击X坐标
-     * @param {number} y - 点击Y坐标
-     * @returns {boolean}
-     */
-    isPointInside(x, y) {
-        return x >= this.x && x <= this.x + this.width &&
-               y >= this.y && y <= this.y + this.height;
-    }
-
-    /**
-     * 处理鼠标按下 - 子类可重写
-     */
-    handleMouseDown(x, y) {
-        this.isPressed = true;
-    }
-
-    /**
-     * 处理鼠标释放 - 子类可重写
-     */
-    handleMouseUp(x, y) {
-        this.isPressed = false;
-    }
-
-    /**
-     * 处理鼠标移动 - 子类可重写
-     */
-    handleMouseMove(x, y) {
-        // 子类实现具体的鼠标移动逻辑
-    }
-
-    /**
-     * 处理鼠标进入 - 子类可重写
-     */
-    handleMouseEnter(x, y) {
-        this.isHovered = true;
-    }
-
-    /**
-     * 处理鼠标离开 - 子类可重写
-     */
-    handleMouseLeave() {
-        this.isHovered = false;
-        this.isPressed = false;
-    }
-
-    /**
-     * 处理点击 - 子类可重写
-     */
-    handleClick(x, y) {
-        // 子类实现具体的点击逻辑
-    }
-
-    
-    handleKeyDown(e){
-        
-    }
-
-    handleKeyUp(e){
-        
-    }
-
-    update(deltaTime) {
-        // 更新事件处理器
-        super.update(deltaTime);
-        
-       this.children.forEach(element => {
-            if (element.visible && element.update) {
-                element.update(deltaTime);
-            }
-        });
-    }
-
-    /**
-     * 设置UI元素可见性
-     * @param {boolean} visible - 是否可见
-     */
-    setVisible(visible) {
-        this.visible = visible;
-    }
-
-    /**
-     * 设置UI元素可用性
-     * @param {boolean} enabled - 是否可用
-     */
-    setEnabled(enabled) {
-        this.enabled = enabled;
     }
 }
 
