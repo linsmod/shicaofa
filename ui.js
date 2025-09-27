@@ -17,6 +17,8 @@ class Button extends UIElement {
         this.borderColor = '#8B4513';
         this.borderWidth = 1;
     }
+    onClick(){
+    }
 
     setBackgroundColor(color) {
         this.backgroundColor = color;
@@ -113,70 +115,6 @@ class Button extends UIElement {
         ctx.quadraticCurveTo(x, y, x + radius, y);
         ctx.closePath();
         ctx.fill();
-    }
-
-    isPointInside(x, y) {
-        return super.isPointInside(x, y) && this.enabled;
-    }
-
-    // 鼠标按下事件
-    handleMouseDown(x, y) {
-        if (this.isPointInside(x, y)) {
-            super.handleMouseDown(x, y);
-            this.isDragging = true;
-            return true;
-        }
-        return false;
-    }
-
-    // 鼠标释放事件
-    handleMouseUp(x, y) {
-        if (this.isPressed && this.isPointInside(x, y)) {
-            if (this.onClick) {
-                this.onClick();
-            }
-        }
-        super.handleMouseUp(x, y);
-        this.isDragging = false;
-        return true;
-    }
-
-    // 鼠标移动事件
-    handleMouseMove(x, y) {
-        super.handleMouseMove(x, y);
-        if (this.isDragging) {
-            const wasInside = this.isPressed;
-            const isInside = this.isPointInside(x, y);
-            
-            if (wasInside && !isInside) {
-                // 鼠标移出按钮区域
-                this.isPressed = false;
-            } else if (!wasInside && isInside) {
-                // 鼠标移入按钮区域
-                this.isPressed = true;
-            }
-            return true;
-        }
-        
-        return false;
-    }
-
-    // 鼠标进入事件
-    handleMouseEnter(x, y) {
-        super.handleMouseEnter(x, y);
-        // 按钮特定的悬停逻辑可以在这里添加
-    }
-
-    // 鼠标离开事件
-    handleMouseLeave() {
-        super.handleMouseLeave();
-        this.isDragging = false;
-    }
-
-    // 点击事件
-    handleClick(x, y) {
-        super.handleClick(x, y);
-        // 按钮特定的点击逻辑可以在这里添加
     }
 
     // 更新方法
@@ -335,6 +273,7 @@ class SettingsPanel extends ModalDialog {
         this.showLogsChecked = false;
         this.closeButton = new ImageButton(x + width - 35, y + 5, 32, 32, 'close.png', () => this.setVisible(false));
         this.closeButton.setMaintainAspectRatio(true);
+        this.children.push(this.closeButton);
     }
 
     render(ctx) {

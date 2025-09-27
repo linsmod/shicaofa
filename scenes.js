@@ -330,6 +330,9 @@ class GameScene extends Scene {
         this.progressCanvas.ctx.restore();
     }
 
+    onClick(){
+    }
+
     /**
      * 备份主Canvas内容
      * 在圆点渲染完成后调用，为特效渲染做准备
@@ -1221,132 +1224,26 @@ class GameScene extends Scene {
         // 子类可以重写此方法来处理键盘事件
     }
 
-    /**
-     * 处理触摸开始事件
-     * @param {TouchEvent} e - 触摸事件对象
-     */
-    handleTouchStart(e) {
-        // 将触摸事件转换为鼠标事件坐标
-        const rect = this.engine.getCanvas().getBoundingClientRect();
-        const touch = e.touches[0];
-        const x = touch.clientX - rect.left;
-        const y = touch.clientY - rect.top;
-        
-        // 记录触摸开始位置（用于判断点击）
-        this.touchStartX = x;
-        this.touchStartY = y;
-        
-        // 调用鼠标按下事件处理
-        this.handleMouseDown(x, y);
-    }
-
-    /**
-     * 处理触摸移动事件
-     * @param {TouchEvent} e - 触摸事件对象
-     */
-    handleTouchMove(e) {
-        // 将触摸事件转换为鼠标事件坐标
-        const rect = this.engine.getCanvas().getBoundingClientRect();
-        const touch = e.touches[0];
-        const x = touch.clientX - rect.left;
-        const y = touch.clientY - rect.top;
-        
-        // 调用鼠标移动事件处理
-        this.handleMouseMove(x, y);
-    }
-
-    /**
-     * 处理触摸结束事件
-     * @param {TouchEvent} e - 触摸事件对象
-     */
-    handleTouchEnd(e) {
-        // 将触摸事件转换为鼠标事件坐标
-        const rect = this.engine.getCanvas().getBoundingClientRect();
-        const touch = e.changedTouches[0];
-        const x = touch.clientX - rect.left;
-        const y = touch.clientY - rect.top;
-        
-        // 判断是否构成点击事件
-        const isClick = this.isReleasedNearPressPiont(this.touchStartX, this.touchStartY, x, y);
-        if (isClick) {
-            this.handleClick(x, y);
-        }
-        
-        // 调用鼠标释放事件处理
-        this.handleMouseUp(x, y);
-    }
-
-    handleStart(x, y) {
-        if (this.sceneManager && this.sceneManager.getCurrentSceneName() !== 'game') return;
-
+    onDragStart(x,y){
         this.lastX = x;
         this.lastY = y;
         this.isDragging = true;
         this.trail = [{ x: this.lastX, y: this.lastY }];
     }
 
-    handleMove(x, y) {
-        if (!this.isDragging) return;
-
-        this.trail.push({ x, y });
-
+    onDrag(x,y){
         if (this.trail.length > 20) {
             this.trail.shift();
         }
+        this.trail.push({ x, y });
     }
-
-    handleEnd(x, y) {
-        if (!this.isDragging) return;
-
-        this.isDragging = false;
-
-        if (this.trail.length > 1) {
+    onDragEnd(x,y){
+         if (this.trail.length > 1) {
             this.performDivision();
         }
 
         this.trail = [];
         this.dirty = true;
-    }
-
-    handleMouseDown(x, y) {
-        // 先处理UI元素事件
-        const handled = super.handleMouseDown(x, y);
-        
-        // 如果没有点击UI元素，则处理蓍草拖拽
-        if (!handled) {
-            this.handleStart(x, y);
-        }
-        
-        return handled;
-    }
-
-    handleMouseUp(x, y) {
-        // 先处理UI元素事件
-        const handled = super.handleMouseUp(x, y);
-        
-        // 如果没有释放UI元素，则处理蓍草拖拽结束
-        if (!handled) {
-            this.handleEnd(x, y);
-        }
-        
-        return handled;
-    }
-
-    handleMouseMove(x, y) {
-        // 先处理UI元素事件
-        const handled = super.handleMouseMove(x, y);
-        
-        // 如果鼠标不在UI元素上，则处理蓍草拖拽
-        if (!handled && this.isDragging) {
-            this.handleMove(x, y);
-        }
-        
-        return handled;
-    }
-
-    handleClick(x, y) {
-        // 处理UI元素点击事件
-        return super.handleClick(x, y);
     }
 
     /**
@@ -1363,39 +1260,6 @@ class GameScene extends Scene {
         this.trail = [{ x: this.lastX, y: this.lastY }];
     }
 
-    /**
-     * 处理蓍草拖拽移动
-     * @param {number} x - 鼠标X坐标
-     * @param {number} y - 鼠标Y坐标
-     */
-    handleMove(x, y) {
-        if (!this.isDragging) return;
-
-        this.trail.push({ x, y });
-
-        if (this.trail.length > 20) {
-            this.trail.shift();
-        }
-    }
-
-    /**
-     * 处理蓍草拖拽结束
-     * @param {number} x - 鼠标X坐标
-     * @param {number} y - 鼠标Y坐标
-     */
-    handleEnd(x, y) {
-        if (!this.isDragging) return;
-
-        this.isDragging = false;
-
-        if (this.trail.length > 1) {
-            this.performDivision();
-        }
-
-        this.trail = [];
-        this.dirty = true;
-    }
-
     update(deltaTime) {
         // 更新父类
         super.update(deltaTime);
@@ -1409,19 +1273,10 @@ class GameScene extends Scene {
             this.closeModal(this.settingsPanel);
         }
         else{
-            this.showModal(this.SettingsPanel);
+            this.showModal(this.settingsPanel);
         }
-        
-        // 更新蓍草动画
-        this.updateStalksAnimation(deltaTime);
     }
 
-    /**
-     * 更新蓍草动画
-     */
-    updateStalksAnimation(deltaTime) {
-        // 可以在这里添加蓍草的动画逻辑
-    }
     createCutLine() {
         // 计算划拉线的起点和终点
         const startPoint = this.trail[0];
