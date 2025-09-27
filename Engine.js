@@ -697,9 +697,6 @@ class EventHandler {
      */
     showModal(element) {
         this.modalElements.push(element);
-        if (element.setModal) {
-            element.setModal(true);
-        }
     }
 
     /**
@@ -709,9 +706,6 @@ class EventHandler {
         const index = this.modalElements.indexOf(element);
         if (index > -1) {
             this.modalElements.splice(index, 1);
-            if (element.setModal) {
-                element.setModal(false);
-            }
         }
     }
 
@@ -726,7 +720,7 @@ class EventHandler {
 /**
  * 场景基类
  */
-class Scene extends EventHandler {
+class Scene extends UIElement {
     constructor(name) {
         super();
         this.name = name;
@@ -784,33 +778,6 @@ class Scene extends EventHandler {
     onCanvasResize(width, height) {
         console.log(`Scene '${this.name}' canvas resized to ${width}x${height}`);
     }
-
-    /**
-     * 更新场景
-     * @param {number} deltaTime - 距离上一帧的时间（毫秒）
-     */
-    update(deltaTime) {
-        // 更新事件处理器
-        super.update(deltaTime);
-        
-        // 更新UI元素
-        this.updateUIElements(deltaTime);
-        
-        // 子类实现具体的更新逻辑
-    }
-
-    /**
-     * 更新UI元素
-     */
-    updateUIElements(deltaTime) {
-        // 可以在这里添加UI元素的通用更新逻辑
-        this.uiElements.forEach(element => {
-            if (element.visible && element.update) {
-                element.update(deltaTime);
-            }
-        });
-    }
-
     /**
      * 渲染场景
      * @param {CanvasRenderingContext2D} ctx - Canvas上下文
@@ -841,8 +808,8 @@ class Scene extends EventHandler {
      * @param {UIElement} element - UI元素
      */
     registerUIElement(element) {
-        if (!this.uiElements.includes(element)) {
-            this.uiElements.push(element);
+        if (!this.children.includes(element)) {
+            this.children.push(element);
         }
     }
 
@@ -851,18 +818,10 @@ class Scene extends EventHandler {
      * @param {UIElement} element - UI元素
      */
     unregisterUIElement(element) {
-        const index = this.uiElements.indexOf(element);
+        const index = this.children.indexOf(element);
         if (index > -1) {
-            this.uiElements.splice(index, 1);
+            this.children.splice(index, 1);
         }
-    }
-
-    /**
-     * 获取所有UI元素
-     * @returns {Array} UI元素数组
-     */
-    getUIElements() {
-        return this.uiElements;
     }
 }
 
@@ -880,6 +839,7 @@ class UIElement {
         this.isHovered = false;
         this.isPressed = false;
         this.backgroundColor = '';
+        this.children = [];
     }
     getBackgroundColor(){
         return this.backgroundColor;
@@ -956,11 +916,15 @@ class UIElement {
         
     }
 
-    /**
-     * 更新 - 子类可重写
-     */
     update(deltaTime) {
-        // 子类实现具体的更新逻辑
+        // 更新事件处理器
+        super.update(deltaTime);
+        
+       this.children.forEach(element => {
+            if (element.visible && element.update) {
+                element.update(deltaTime);
+            }
+        });
     }
 
     /**
