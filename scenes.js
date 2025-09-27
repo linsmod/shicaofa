@@ -24,6 +24,8 @@ class StartScene extends Scene {
         this.startButton = null;
         this.title = '蓍草占卜';
         this.subtitle = '体验古老《易经》占卜的现代交互方式';
+        // 设置渐变背景
+        this.backgroundColor = 'linear-gradient(to bottom, #2E8B57, #1E5A3E)';
     }
 
     init() {
@@ -146,7 +148,7 @@ class GameScene extends Scene {
         this.lastY = 0;
         this.trail = [];
         this.removalTimeout = null;
-
+        this.backgroundColor = 'linear-gradient(to bottom, #2F4F4F33, #33333333)';
         // 特效系统
         this.effectSystem = {
             isActive: false,
@@ -1513,7 +1515,7 @@ class ResultScene extends Scene {
         this.restartButton = null;
         this.newGameButton = null;
         this.guaDisplay = null;
-        this.backgroundColor = '#333333'
+        this.backgroundColor = 'linear-gradient(to bottom, #1a1a2e, #16213e, #0f3460)'
         this.yaos = [];
         this.guaData = null; // 缓存卦象数据
         this.isGuaDataCalculated = false; // 标记是否已计算

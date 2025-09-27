@@ -811,38 +811,41 @@ class Scene extends UIElement {
             this.children.splice(index, 1);
         }
     }
-    clearRect(ctx, x,y,w,h,c){
-        ctx.fillStyle = this.backgroundColorBase;
-        ctx.fillRect(x, y, w, h);
-        if(!this.offsetX){
-            this.offsetX =1;
-            this.offsetY =1;
-        }
-        this.offsetX+=1;
-        this.offsetY+=2;
-        const drawX = x + this.offsetX % w;
-        const drawY = h + this.offsetY % h;
+    clearRect(ctx, x, y, w, h, c){
         if (c.startsWith('linear-gradient')) {
-            // 解析渐变字符串中的颜色值
-            const gradientMatch = c.match(/linear-gradient\([^,]+,\s*([^,]+),\s*([^)]+)\)/);
-            if (gradientMatch) {
-                const color1 = gradientMatch[1].trim();
-                const color2 = gradientMatch[2].trim();
-                const gradient = ctx.createLinearGradient(drawX, drawY, drawX, drawY);
-                gradient.addColorStop(0, color2);
-                gradient.addColorStop(1, color1);
-                ctx.fillStyle = gradient;
+            // 解析渐变字符串中的颜色值 - 支持多色渐变
+            const colors = [];
+            
+            // 简单的解析：找到所有十六进制颜色值
+            const colorMatches = c.match(/#[0-9a-fA-F]{6}/g);
+            
+            if (colorMatches && colorMatches.length >= 2) {
+                colors.push(...colorMatches);
             } else {
-                // 如果解析失败，使用默认颜色
-                const gradient = ctx.createLinearGradient(drawX, drawY, drawX, drawY);
-                gradient.addColorStop(0, '#A0522D');
-                gradient.addColorStop(1, '#8B4513');
-                ctx.fillStyle = gradient;
+                console.warn('渐变解析失败: 需要至少2个颜色值', {
+                    original: c,
+                    colorMatches: colorMatches,
+                    fallback: ['#2E8B57', '#228B22']
+                });
+                // 使用默认渐变
+                colors.push('#2E8B57', '#228B22');
             }
+            
+            // 创建从上到下的渐变
+            const gradient = ctx.createLinearGradient(x, y, x, y + h);
+            
+            // 均匀分布颜色
+            for (let i = 0; i < colors.length; i++) {
+                gradient.addColorStop(i / (colors.length - 1), colors[i].trim());
+            }
+            
+            ctx.fillStyle = gradient;
         } else {
+            // 使用纯色
             ctx.fillStyle = c;
         }
-        // ctx.fillStyle = this.backgroundColor;
+        
+        // 填充整个区域
         ctx.fillRect(x, y, w, h);
     }
 }
