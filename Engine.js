@@ -182,7 +182,8 @@ class GameEngine {
     }
 
     /**
-     * 初始化鼠标事件监听
+     * 初始化鼠标和触摸事件监听
+     * @deprecated 建议重命名为 initInputEvents 以更好地反映其功能
      */
     initMouseEvents() {
         if (!this.canvas) return;
@@ -228,6 +229,37 @@ class GameEngine {
             this.mouseState.x = e.clientX - rect.left;
             this.mouseState.y = e.clientY - rect.top;
             this.mouseState.isPressed = true;
+        });
+
+        // 触摸开始事件
+        this.canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // 防止页面滚动
+            const touch = e.touches[0];
+            const rect = this.canvas.getBoundingClientRect();
+            this.mouseState.pressX = touch.clientX - rect.left;
+            this.mouseState.pressY = touch.clientY - rect.top;
+            this.mouseState.x = touch.clientX - rect.left;
+            this.mouseState.y = touch.clientY - rect.top;
+            this.mouseState.isPressed = true;
+        });
+
+        // 触摸移动事件
+        this.canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault(); // 防止页面滚动
+            const touch = e.touches[0];
+            const rect = this.canvas.getBoundingClientRect();
+            this.mouseState.x = touch.clientX - rect.left;
+            this.mouseState.y = touch.clientY - rect.top;
+            this.mouseState.moved = true;
+        });
+
+        // 触摸结束事件
+        this.canvas.addEventListener('touchend', (e) => {
+            e.preventDefault(); // 防止页面滚动
+            const rect = this.canvas.getBoundingClientRect();
+            this.mouseState.x = this.mouseState.x; // 保持最后的位置
+            this.mouseState.y = this.mouseState.y;
+            this.mouseState.isReleased = true;
         });
 
         window.addEventListener('resize',e=>{
@@ -400,7 +432,7 @@ class UIEventSystem {
      */
     processMouseDown(layer, x, y) {
         const hitObject = this.elementAt(layer, x, y);
-        // console.log('MouseDown hit',hitObject);
+        console.log('MouseDown hit',hitObject);
         if (hitObject) {
             // 记录按下位置，用于后续拖拽判断
             this.pressX = x;
@@ -436,7 +468,7 @@ class UIEventSystem {
     processMouseMove(layer, x, y) {
         // 优先处理拖拽
         if (this.draggingObject) {
-            // console.log('MouseMove onDrag',this.draggingObject);
+            console.log('MouseMove onDrag',this.draggingObject);
             this.draggingObject.onDrag(x, y);
             return;
         }
@@ -479,12 +511,12 @@ class UIEventSystem {
             }
 
             this.hoveredObject = newHovered;
-            // console.log('MouseMove newHovered',newHovered);
+            console.log('MouseMove newHovered',newHovered);
         }
 
         // 触发当前悬停对象的移动事件
         if (this.hoveredObject) {
-            // console.log('MouseMove ',this.hoveredObject);
+            console.log('MouseMove ',this.hoveredObject);
             if(this.hoveredObject.onMouseMove){
             this.hoveredObject.onMouseMove(x, y);
             }
@@ -498,7 +530,7 @@ class UIEventSystem {
         // 1. 结束拖拽
         if (this.draggingObject) {
             if (this.draggingObject.onDragEnd) {
-                // console.log('MouseUp endDrag',this.draggingObject);
+                console.log('MouseUp endDrag',this.draggingObject);
                 this.draggingObject.onDragEnd(x, y);
             }
             this.draggingObject = null;
@@ -519,7 +551,7 @@ class UIEventSystem {
             if (!this.draggingObject) {
                 const currentHover = this.elementAt(layer, x, y); // 同样需要 layer
                 if (currentHover === wasPressed && wasPressed.onClick) {
-                    // console.log('MouseUp onClick',wasPressed);
+                    console.log('MouseUp onClick',wasPressed);
                     wasPressed.onClick(x, y);
                 }
             }
@@ -817,8 +849,7 @@ class Scene extends UIElement {
             const colors = [];
             
             // 简单的解析：找到所有十六进制颜色值
-            const colorMatches = c.match(/#[0-9a-fA-F]{6}/g);
-            
+            const colorMatches = c.match(/#([0-9a-fA-F]{8}|[0-9a-fA-F]{6})/g);
             if (colorMatches && colorMatches.length >= 2) {
                 colors.push(...colorMatches);
             } else {

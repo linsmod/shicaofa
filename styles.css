@@ -12,7 +12,7 @@
 /* 基础样式 */
 body {
     font-family: 'Microsoft YaHei', sans-serif;
-    background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+    background: linear-gradient(135deg, #6c1a4f, #c2c2c2, #9a711d);
     color: #fff;
     min-height: 100vh;
     display: flex;
@@ -53,7 +53,7 @@ h1 {
     width: 100%;
     height: 500px;
     margin-bottom: 20px;
-    border: 3px solid #8B4513;
+    border: 3px solid #7b8b13;
     border-radius: 10px;
     overflow: hidden;
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);

@@ -1438,8 +1438,8 @@ class GameScene extends Scene {
     render(ctx, width, height) {
         super.clearRect(ctx,0,0,width,height,this.backgroundColor);
 
-            // 绘制蓍草（圆点）
-            this.drawStalks(ctx);
+        // 绘制蓍草（圆点）
+        this.drawStalks(ctx);
         // 渲染特效
         this.renderEffects(ctx);
 
