@@ -71,11 +71,18 @@ class TextBlock extends UIElement {
         this.options.textBaseline = baseline;
     }
 
-    updateSize() {
-        // 这个方法需要在渲染时调用，因为需要Canvas上下文
-        // 暂时设置为默认值，实际尺寸在render方法中计算
-        this.width = 100;
-        this.height = 20;
+    updateSize(ctx) {
+        // 如果提供了Canvas上下文，则实际测量文本尺寸
+        if (ctx) {
+            ctx.font = `${this.options.fontWeight} ${this.options.fontSize} ${this.options.fontFamily}`;
+            const metrics = ctx.measureText(this.text);
+            this.width = metrics.width;
+            this.height = parseInt(this.options.fontSize) * 1.2; // 估算文本高度
+        } else {
+            // 如果没有Canvas上下文，使用估算值
+            this.width = this.text.length * parseInt(this.options.fontSize) * 0.6; // 估算文本宽度
+            this.height = parseInt(this.options.fontSize) * 1.2; // 估算文本高度
+        }
     }
 
     render(ctx) {
@@ -91,9 +98,7 @@ class TextBlock extends UIElement {
         
         // 计算文本尺寸（如果需要自动调整）
         if (this.autoSize) {
-            const metrics = ctx.measureText(this.text);
-            this.width = metrics.width;
-            this.height = parseInt(this.options.fontSize) * 1.2; // 估算文本高度
+            this.updateSize(ctx);
         }
 
         // 绘制文本描边（如果设置了）
@@ -524,11 +529,12 @@ class GameInfoPanel extends UIElement {
         this.currentYao = yao;
     }
 
-    render(ctx) {
+    render(ctx, canvasWidth, canvasHeight) {
         // 绘制面板背景
         ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
         this.drawRoundedRect(ctx, this.x, this.y, this.width, this.height, 3);
 
+        console.log(canvasWidth,canvasWidth);
         // 绘制边框
         ctx.strokeStyle = 'rgba(255, 215, 0, 0.3)';
         ctx.lineWidth = 1;
@@ -558,7 +564,7 @@ class GameInfoPanel extends UIElement {
             ctx.fillText(`?`, leftX, handStatusY + vpad);
             ctx.fillStyle = '#99ff69ff';
             ctx.font = 'bold 1.0rem "Microsoft YaHei", sans-serif';
-            ctx.fillText(`<划拉屏幕开始取爻>`, ctx.canvas.width/2-150, ctx.canvas.height/2-100);
+            ctx.fillText(`<划拉屏幕开始取爻>`, canvasWidth/2-150, canvasHeight/2-100);
         }
         leftX+=padding;
 

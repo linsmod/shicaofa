@@ -13,8 +13,8 @@ class CanvasManager {
         this.actualHeight = 0;  // 实际像素高度
         this.isInitialized = false;
         
+        // 注意：resize事件由Engine统一管理，这里不直接监听
         // 监听设备像素比变化
-        window.addEventListener('resize', () => this.handleResize());
         window.addEventListener('devicePixelRatioChange', () => this.handlePixelRatioChange());
     }
 
@@ -83,12 +83,13 @@ class CanvasManager {
         if (!this.canvas) return;
 
         const rect = this.canvas.getBoundingClientRect();
+        console.log("canvas rect",rect);
         this.displayWidth = rect.width;
         this.displayHeight = rect.height;
 
         // 设置CSS尺寸
-        this.canvas.style.width = this.displayWidth + 'px';
-        this.canvas.style.height = this.displayHeight + 'px';
+        this.canvas.style.width = '100%';
+        this.canvas.style.height = '100%';
 
         // 设置实际像素尺寸（考虑设备像素比）
         this.actualWidth = Math.floor(this.displayWidth * this.devicePixelRatio);
@@ -97,6 +98,8 @@ class CanvasManager {
         // 设置Canvas的width/height属性
         this.canvas.width = this.actualWidth;
         this.canvas.height = this.actualHeight;
+
+        console.log("canvas pixels size",this.canvas.width,this.canvas.height);
 
         // 缩放上下文以匹配设备像素比
         this.ctx.scale(this.devicePixelRatio, this.devicePixelRatio);

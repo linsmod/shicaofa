@@ -390,6 +390,71 @@ class GameScene extends Scene {
     }
 
     /**
+     * 更新离屏Canvas系统尺寸
+     */
+    updateOffscreenCanvasSizes() {
+        const canvasManager = this.engine.getCanvasManager();
+        const { width, height } = canvasManager.getDisplaySize();
+        
+        // 更新进度条Canvas尺寸
+        if (this.progressCanvas.canvas) {
+            // 移除旧的Canvas
+            if (this.progressCanvas.canvas.parentElement) {
+                this.progressCanvas.canvas.parentElement.removeChild(this.progressCanvas.canvas);
+            }
+            
+            // 创建新的Canvas
+            this.progressCanvas.canvas = canvasManager.createOffscreenCanvas(width, 60);
+            this.progressCanvas.ctx = this.progressCanvas.canvas.getContext('2d');
+            
+            // 重新添加到DOM
+            this.progressCanvas.container.appendChild(this.progressCanvas.canvas);
+            
+            // 重新渲染
+            this.renderProgressCanvas();
+        }
+        
+        // 更新缩略图Canvas尺寸
+        if (this.thumbnailCanvas.canvas) {
+            // 移除旧的Canvas
+            if (this.thumbnailCanvas.canvas.parentElement) {
+                this.thumbnailCanvas.canvas.parentElement.removeChild(this.thumbnailCanvas.canvas);
+            }
+            
+            // 创建新的Canvas
+            this.thumbnailCanvas.canvas = canvasManager.createOffscreenCanvas(width * 0.2, height * 0.2);
+            this.thumbnailCanvas.ctx = this.thumbnailCanvas.canvas.getContext('2d');
+            
+            // 重新添加到DOM
+            this.thumbnailCanvas.container.appendChild(this.thumbnailCanvas.canvas);
+            
+            // 重新渲染
+            this.renderThumbnail();
+        }
+        
+        // 更新多Canvas裁剪系统尺寸
+        if (this.effectSystem.isMultiCanvasInitialized) {
+            // 移除旧的容器
+            if (this.effectSystem.canvi.parentElement) {
+                this.effectSystem.canvi.parentElement.removeChild(this.effectSystem.canvi);
+            }
+            
+            // 重新初始化多Canvas系统
+            this.initMultiCanvasSystem();
+        }
+        
+        // 清空trail数组，确保特效使用最新的坐标
+        this.trail = [];
+        
+        // // 如果正在拖拽，重置拖拽状态
+        // if (this.isDragging) {
+        //     this.isDragging = false;
+        //     this.lastX = 0;
+        //     this.lastY = 0;
+        // }
+    }
+
+    /**
      * 渲染进度条Canvas内容
      */
     renderProgressCanvas() {
@@ -507,6 +572,14 @@ class GameScene extends Scene {
         this.effectSystem.animationProgress = 0;
         this.effectSystem.startTime = performance.now();
         this.effectSystem.particles = [];
+
+        // 显示特效canvas
+        if (this.effectSystem.leftCanvas) {
+            this.effectSystem.leftCanvas.style.display = 'block';
+        }
+        if (this.effectSystem.rightCanvas) {
+            this.effectSystem.rightCanvas.style.display = 'block';
+        }
 
         // 计算法线方向
         const lineVecX = cutLine.end.x - cutLine.start.x;
@@ -897,6 +970,14 @@ class GameScene extends Scene {
         this.effectSystem.isActive = false;
         this.effectSystem.currentEffect = null;
         this.effectSystem.particles = [];
+
+        // 隐藏特效canvas
+        if (this.effectSystem.leftCanvas) {
+            this.effectSystem.leftCanvas.style.display = 'none';
+        }
+        if (this.effectSystem.rightCanvas) {
+            this.effectSystem.rightCanvas.style.display = 'none';
+        }
     }
 
     doStalksAlgorithm() {
@@ -982,16 +1063,23 @@ class GameScene extends Scene {
 
             // 六个爻获得一个卦
             if(this.yaos.length==6){
-                this.nextScene = 'result'
-                this.sceneResult = Array.from(this.yaos);
-                this.yaos = []
-                this.currentStep = 0;
+                this.enabled= false;
+                
+                this.finish(()=>{
+                    this.nextScene = 'result'
+                    this.sceneResult = Array.from(this.yaos);
+                    this.yaos = []
+                    this.currentStep = 0;
+                });
             }
         }
         else{
             this.initStalks(result.rest);
         }
         this.lastresult = result;
+    }
+    finish(action){
+        this.finshAction = action;
     }
 
     /**
@@ -1445,7 +1533,7 @@ class GameScene extends Scene {
         if (this.restartButton) this.restartButton.render(ctx);
         if (this.logsButton) this.logsButton.render(ctx);
         if (this.settingsPanel) this.settingsPanel.render(ctx);
-        if (this.gameInfoPanel) this.gameInfoPanel.render(ctx);
+        if (this.gameInfoPanel) this.gameInfoPanel.render(ctx, width, height);
     }
 
     drawStalks(ctx) {

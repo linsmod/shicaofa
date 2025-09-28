@@ -48,6 +48,19 @@ class GameEngine {
             }
         });
 
+        // 设置窗口状态跟踪
+        this.windowState = {
+            rect: null,
+            sizeChanged: false
+        };
+
+        // 监听窗口resize事件，只更新状态，在gameLoop中处理
+        window.addEventListener('resize', () => {
+            const rect = this.canvas.getBoundingClientRect();
+            this.windowState.rect = rect;
+            this.windowState.sizeChanged = true;
+        });
+
         // 初始化场景管理器
         this.sceneManager = new SceneManager(this);
 
@@ -99,6 +112,17 @@ class GameEngine {
     }
 
     /**
+     * 检查并处理窗口大小变化
+     */
+    checkAndHandleResize() {
+        if (this.windowState && this.windowState.sizeChanged) {
+            this.resizeCanvas();
+            // 重置sizeChanged状态
+            this.windowState.sizeChanged = false;
+        }
+    }
+
+    /**
      * 游戏主循环
      */
     gameLoop() {
@@ -108,6 +132,9 @@ class GameEngine {
         const deltaTime = currentTime - this.lastTime;
 
         if (deltaTime >= this.frameInterval) {
+            // 检查并处理窗口大小变化
+            this.checkAndHandleResize();
+            
             // 处理输入事件
             this.processInputEvents();
             
@@ -197,9 +224,6 @@ class GameEngine {
             isReleased: false,
             moved: false,
         };
-        this.windowState={
-            rect:null,
-        }
         this.keyState={
             keydown:null,
             keyup:null,
@@ -262,12 +286,8 @@ class GameEngine {
             this.mouseState.isReleased = true;
         });
 
-        window.addEventListener('resize',e=>{
-            debugger;
-             const rect = this.canvas.getBoundingClientRect();
-             this.windowState.rect = rect;
-             this.windowState.sizeChanged = true;
-        });
+        // 注意：CanvasManager已经监听了resize事件并处理，这里不需要重复监听
+        // 如果需要额外的resize处理，可以在这里添加
 
         // 鼠标释放事件
         window.addEventListener('mouseup', (e) => {
@@ -432,7 +452,7 @@ class UIEventSystem {
      */
     processMouseDown(layer, x, y) {
         const hitObject = this.elementAt(layer, x, y);
-        console.log('MouseDown hit',hitObject);
+        // console.log('MouseDown hit',hitObject);
         if (hitObject) {
             // 记录按下位置，用于后续拖拽判断
             this.pressX = x;
@@ -468,7 +488,7 @@ class UIEventSystem {
     processMouseMove(layer, x, y) {
         // 优先处理拖拽
         if (this.draggingObject) {
-            console.log('MouseMove onDrag',this.draggingObject);
+            // console.log('MouseMove onDrag',this.draggingObject);
             this.draggingObject.onDrag(x, y);
             return;
         }
@@ -512,12 +532,12 @@ class UIEventSystem {
             }
 
             this.hoveredObject = newHovered;
-            console.log('MouseMove newHovered',newHovered);
+            // console.log('MouseMove newHovered',newHovered);
         }
 
         // 触发当前悬停对象的移动事件
         if (this.hoveredObject) {
-            console.log('MouseMove ',this.hoveredObject);
+            // console.log('MouseMove ',this.hoveredObject);
             if(this.hoveredObject.onMouseMove){
             this.hoveredObject.onMouseMove(x, y);
             }
@@ -530,9 +550,9 @@ class UIEventSystem {
     processMouseUp(layer, x, y) {
         // 1. 结束拖拽
         if (this.draggingObject) {
+            this.draggingObject.isDragging = false;
             if (this.draggingObject.onDragEnd) {
-                console.log('MouseUp endDrag',this.draggingObject);
-                this.draggingObject.isDragging = false;
+                // console.log('MouseUp endDrag',this.draggingObject);
                 this.draggingObject.onDragEnd(x, y);
             }
             this.draggingObject = null;
@@ -553,7 +573,7 @@ class UIEventSystem {
             if (!this.draggingObject) {
                 const currentHover = this.elementAt(layer, x, y); // 同样需要 layer
                 if (currentHover === wasPressed && wasPressed.onClick) {
-                    console.log('MouseUp onClick',wasPressed);
+                    // console.log('MouseUp onClick',wasPressed);
                     wasPressed.onClick(x, y);
                 }
             }
@@ -593,7 +613,9 @@ class UIEventSystem {
                 }
             }
         }
-        return layer;
+        if(this.interactable(layer))
+            return layer;
+        return null;
     }
 
     /**
@@ -733,6 +755,27 @@ class Scene extends UIElement {
         this.children = []; // 存储所有UI元素
         this.dialogs = [];
         this.nextScene = null;
+    }
+
+    /**
+     * Canvas尺寸改变时的处理
+     * @param {number} width - Canvas宽度
+     * @param {number} height - Canvas高度
+     */
+    onCanvasResize(width, height) {
+        // 基类实现，子类可以重写
+        // 更新离屏Canvas系统尺寸（如果存在）
+        if (this.updateOffscreenCanvasSizes) {
+            this.updateOffscreenCanvasSizes();
+        }
+        
+        // 重新渲染场景
+        if (this.render) {
+            const ctx = this.engine.getContext();
+            if (ctx) {
+                this.render(ctx, width, height);
+            }
+        }
     }
 
     /**
