@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', function() {
         gameScene.updateDisplay = function() {
             if (this.gameInfoPanel && this.lastresult) {
                 this.gameInfoPanel.setCounts(this.leftGroup.length, this.rightGroup.length, this.asideStalks);
-                this.gameInfoPanel.setAlgorithmInfo(this.currentStalks, this.lastresult.nextStep, this.yaos.length);
+                this.gameInfoPanel.setAlgorithmInfo(this.lastresult.rest, this.lastresult.nextStep, this.yaos.length);
             }
         };
         

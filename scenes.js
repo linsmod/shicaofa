@@ -239,6 +239,7 @@ class GameScene extends Scene {
     }
 
     init() {
+        this.elapsed = 0;
         this.stalks = [];
         this.leftGroup = [];
         this.rightGroup = [];
@@ -363,12 +364,12 @@ class GameScene extends Scene {
         this.thumbnailCanvas.container = document.createElement('div');
         this.thumbnailCanvas.container.style.position = 'absolute';
         this.thumbnailCanvas.container.style.left = '10px';
-        this.thumbnailCanvas.container.style.bottom = '100px';
+        this.thumbnailCanvas.container.style.bottom = '110px';
         // this.thumbnailCanvas.container.style.width = '200px';
         // this.thumbnailCanvas.container.style.height = '150px';
         this.thumbnailCanvas.container.style.pointerEvents = 'none';
         this.thumbnailCanvas.container.style.zIndex = '30';
-        this.thumbnailCanvas.container.style.border = '3px solid rgba(255, 215, 0, 0.8)';
+        this.thumbnailCanvas.container.style.border = '3px solid rgba(255, 213, 0, 0.5)';
         this.thumbnailCanvas.container.style.borderRadius = '10px';
         this.thumbnailCanvas.container.style.backgroundColor = 'rgba(63, 63, 63, 0.8)';
         this.thumbnailCanvas.container.style.padding="3px"
@@ -415,16 +416,15 @@ class GameScene extends Scene {
         
         // 使用CSS像素尺寸
         const scaledWidth = displayWidth;
-        const scaledHeight = 60; // CSS高度固定为60px
+        const scaledHeight = 85; // CSS高度固定为60px
         
        
         
         // 计算内容区域宽度
-        const titleWidth = this.progressCanvas.ctx.measureText('取').width;
-        const yaoAreaStartX = 10 + titleWidth + 10; // 标题右边距10px
+        const yaoAreaStartX = 10; // 标题右边距10px
         
         // 计算六个爻区域的总宽度
-        const yaoBlockSize = 10;
+        const yaoBlockSize = 12;
         const yaoSpacing = 3;
         const yaoAreaWidth = 6 * 50; // 6个爻，每个占50px
         
@@ -432,17 +432,17 @@ class GameScene extends Scene {
         const backgroundWidth = yaoAreaStartX + yaoAreaWidth + 20;
         
         // 绘制进度背景（适应内容宽度）
-        this.progressCanvas.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        this.progressCanvas.ctx.fillStyle = 'rgba(49, 34, 34, 0.6)';
         this.progressCanvas.ctx.fillRect(0, 0, backgroundWidth, scaledHeight);
 
          // 绘制进度标题
-        this.progressCanvas.ctx.fillStyle = '#FFD700';
-        this.progressCanvas.ctx.font = 'bold 16px "Microsoft YaHei", sans-serif';
+        this.progressCanvas.ctx.fillStyle = '#ffffff79';
+        this.progressCanvas.ctx.font = 'bold 42px "Microsoft YaHei", sans-serif';
         this.progressCanvas.ctx.textAlign = 'left';
-        this.progressCanvas.ctx.fillText('取', 10, 20);
+        this.progressCanvas.ctx.fillText('PROGRESSION', 5, 86);
         
         // 添加内边距
-        const padding = 0;
+        const padding = 1;
         const contentHeight = scaledHeight - padding * 2;
         
         // 绘制六个爻的进度方块
@@ -452,8 +452,8 @@ class GameScene extends Scene {
             const yaoX = yaoAreaStartX + yao * 50;
             
             // 绘制爻标签
-            this.progressCanvas.ctx.fillStyle = '#FFD700';
-            this.progressCanvas.ctx.font = '12px "Microsoft YaHei", sans-serif';
+            this.progressCanvas.ctx.fillStyle = '#c3ff00ff';
+            this.progressCanvas.ctx.font = '20px bold sans-serif';
             this.progressCanvas.ctx.textAlign = 'center';
             
             let yaoName;
@@ -1120,7 +1120,6 @@ class GameScene extends Scene {
     onDragStart(x,y){
         this.lastX = x;
         this.lastY = y;
-        this.isDragging = true;
         this.trail = [{ x: this.lastX, y: this.lastY }];
     }
 
@@ -1138,24 +1137,19 @@ class GameScene extends Scene {
         this.trail = [];
         this.dirty = true;
     }
-
-    /**
-     * 处理蓍草拖拽开始
-     * @param {number} x - 鼠标X坐标
-     * @param {number} y - 鼠标Y坐标
-     */
-    handleStart(x, y) {
-        if (this.sceneManager && this.sceneManager.getCurrentSceneName() !== 'game') return;
-
-        this.lastX = x;
-        this.lastY = y;
-        this.isDragging = true;
-        this.trail = [{ x: this.lastX, y: this.lastY }];
+    onClick(){
+        this.initStalks(this.stalks.length);
     }
 
     update(deltaTime) {
         // 更新父类
         super.update(deltaTime);
+        
+        this.elapsed+=parseInt(deltaTime.toString());
+        if(!this.isDragging && this.elapsed > 850 && !this.effectSystem.isActive){
+            this.elapsed = 0;
+            this.initStalks(this.stalks.length);
+        }
         
         // 更新游戏特定的逻辑
         if (this.effectSystem.isActive) {
@@ -1380,7 +1374,7 @@ class GameScene extends Scene {
             ctx.font = 'bold 10px "Microsoft YaHei", sans-serif';
             ctx.textAlign = 'left';
             ctx.textBaseline = 'top';
-            ctx.fillText('上次分割', 3, 3);
+            ctx.fillText('分二象两', 3, 3);
         }
     }
 
@@ -1928,8 +1922,8 @@ class ResultScene extends Scene {
             if (x <= leftThirdWidth) {
                 ctx.save();
                 ctx.globalAlpha = 0.2;
-                ctx.fillStyle = '#d9d9d937';
-                ctx.font = '600px serif';
+                ctx.fillStyle = '#d9d9d979';
+                ctx.font = (ctx.canvas.height>ctx.canvas.width? ctx.canvas.width:ctx.canvas.height)*0.75+'px serif';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(symbol, x, y);

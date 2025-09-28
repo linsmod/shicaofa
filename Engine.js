@@ -483,6 +483,7 @@ class UIEventSystem {
                 // 开始拖拽
                 this.draggingObject = this.pressedObject;
                 if (this.pressedObject.onDragStart) {
+                    this.pressedObject.isDragging = true;
                     this.pressedObject.onDragStart(this.pressX, this.pressY); // 使用按下点
                 }
                 return;
@@ -531,6 +532,7 @@ class UIEventSystem {
         if (this.draggingObject) {
             if (this.draggingObject.onDragEnd) {
                 console.log('MouseUp endDrag',this.draggingObject);
+                this.draggingObject.isDragging = false;
                 this.draggingObject.onDragEnd(x, y);
             }
             this.draggingObject = null;

@@ -510,18 +510,6 @@ class GameInfoPanel extends UIElement {
         this.remainingStalks = 49;
         this.currentChange = 0;
         this.currentYao = 0;
-        this.enabled = false;
-        
-        // 创建提示文本控件
-        this.hintText = new TextBlock(0, 0, '划拉屏幕开始取爻', {
-            fontSize: '1.2rem',
-            fontWeight: 'bold',
-            fillColor: '#99ff69',
-            textAlign: 'center',
-            textBaseline: 'middle'
-        });
-        this.hintText.visible = false; // 默认隐藏
-        this.children.push(this.hintText);
     }
 
     setCounts(left, right, hand) {
@@ -534,9 +522,6 @@ class GameInfoPanel extends UIElement {
         this.remainingStalks = remaining;
         this.currentChange = change;
         this.currentYao = yao;
-        
-        // 根据currentChange的值控制提示文本的显示
-        this.hintText.visible = change === 0;
     }
 
     render(ctx) {
@@ -554,7 +539,8 @@ class GameInfoPanel extends UIElement {
         ctx.font = '0.8rem "Microsoft YaHei", sans-serif';
         ctx.textAlign = 'center';
 
-        const handStatusY = this.y + 25;
+        const handStatusY = this.y + 22;
+        const vpad = 20;
         var leftX = this.x + 40;
         const rightX = this.x + this.width / 2;
         const padding = 75;
@@ -567,12 +553,12 @@ class GameInfoPanel extends UIElement {
         ctx.fillStyle = '#FF69B4';
         ctx.font = 'bold 0.9rem "Microsoft YaHei", sans-serif';
         if(this.currentChange>0)
-        ctx.fillText(`${yaoName}-${this.currentChange+0}`, leftX, handStatusY + 15);
-    else{
-            // 使用TextBlock控件显示提示信息
-            // this.hintText.x = ctx.canvas.width / 2;
-            // this.hintText.y = ctx.canvas.height / 2;
-            // this.hintText.render(ctx);
+        ctx.fillText(`${yaoName}-${this.currentChange+0}`, leftX, handStatusY + vpad);
+        else{
+            ctx.fillText(`?`, leftX, handStatusY + vpad);
+            ctx.fillStyle = '#99ff69ff';
+            ctx.font = 'bold 1.0rem "Microsoft YaHei", sans-serif';
+            ctx.fillText(`<划拉屏幕开始取爻>`, ctx.canvas.width/2-150, ctx.canvas.height/2-100);
         }
         leftX+=padding;
 
@@ -581,16 +567,20 @@ class GameInfoPanel extends UIElement {
         ctx.fillText('分二象两', leftX, handStatusY);
         ctx.fillStyle = '#FF69B4';
         ctx.font = 'bold 0.9rem "Microsoft YaHei", sans-serif';
-        ctx.fillText(`${this.leftCount} | ${this.rightCount}`, leftX, handStatusY + 15);
+        ctx.fillText(`${this.leftCount} | ${this.rightCount}`, leftX, handStatusY + vpad);
 
         leftX+=padding;
-        if(this.leftCount>0){
+        // if(this.leftCount>0){
             ctx.fillStyle = '#FFD700';
             ctx.font = '0.8rem "Microsoft YaHei", sans-serif';
             ctx.fillText('挂揲归奇', leftX, handStatusY);
             ctx.fillStyle = '#FF69B4';
             ctx.font = 'bold 0.9rem "Microsoft YaHei", sans-serif';
-            ctx.fillText(`${this.leftCount%4} | 1+${(this.rightCount-1)%4}`, leftX, handStatusY + 15);
+            if(this.leftCount==0){
+                ctx.fillText(`? | ?`, leftX, handStatusY + vpad);
+            }
+            else
+            ctx.fillText(`${this.leftCount%4} | 1+${(this.rightCount-1)%4}`, leftX, handStatusY + vpad);
 
             leftX+=padding;
             ctx.fillStyle = '#FFD700';
@@ -598,9 +588,13 @@ class GameInfoPanel extends UIElement {
             ctx.fillText('营余', leftX, handStatusY);
             ctx.fillStyle = '#FF69B4';
             ctx.font = 'bold 0.9rem "Microsoft YaHei", sans-serif';
-            ctx.fillText(`${(this.leftCount+this.rightCount) - this.leftCount%4 - 1 - (this.rightCount-1)%4}`, leftX, handStatusY + 15);
-            leftX+=padding;
-        }
+            if(this.leftCount==0){
+                ctx.fillText(`?`, leftX, handStatusY + vpad);
+            }
+            else
+            ctx.fillText(`${(this.leftCount+this.rightCount) - this.leftCount%4 - 1 - (this.rightCount-1)%4}`, leftX, handStatusY + vpad);
+             leftX+=padding;
+        // }
         
 
         // 绘制算法信息
@@ -608,12 +602,13 @@ class GameInfoPanel extends UIElement {
         ctx.font = '0.7rem "Microsoft YaHei", sans-serif';
         ctx.textAlign = 'left';
 
+        const hpad = 20;
         const algorithmY = this.y + 60;
-        const infoSpacing = this.width / 3;
+        const infoSpacing = this.width / 3 - 10;
 
-        ctx.fillText(`剩余蓍草：${this.remainingStalks}根`, this.x + 10, algorithmY);
-        ctx.fillText(`变数：${this.currentChange}/3`, this.x + 10 + infoSpacing, algorithmY);
-        ctx.fillText(`起卦进度：${this.currentChange}/${this.currentYao+1}/6`, this.x + 10 + infoSpacing * 2, algorithmY);
+        ctx.fillText(`营始：${this.remainingStalks}`, this.x + hpad, algorithmY);
+        ctx.fillText(`变数：${this.currentChange}/3`, this.x + hpad + infoSpacing, algorithmY);
+        ctx.fillText(`变/爻/营：${this.currentChange}/${this.currentYao+1}/6`, this.x + hpad + infoSpacing * 2, algorithmY);
     }
 
     drawRoundedRect(ctx, x, y, width, height, radius) {
