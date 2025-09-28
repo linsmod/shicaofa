@@ -520,7 +520,7 @@ class GameInfoPanel extends UIElement {
                 ctx.fillText(`? | ?`, leftX, handStatusY + vpad);
             }
             else
-            ctx.fillText(`${this.leftCount%4} | 1+${(this.rightCount-1)%4}`, leftX, handStatusY + vpad);
+            ctx.fillText(`${this.leftCount%4} | 1+${(this.rightCount-1)%4 ||4}`, leftX, handStatusY + vpad);
 
             leftX+=padding;
             ctx.fillStyle = '#FFD700';
@@ -532,7 +532,7 @@ class GameInfoPanel extends UIElement {
                 ctx.fillText(`?`, leftX, handStatusY + vpad);
             }
             else
-            ctx.fillText(`${(this.leftCount+this.rightCount) - this.leftCount%4 - 1 - (this.rightCount-1)%4}`, leftX, handStatusY + vpad);
+                 ctx.fillText(`${(this.leftCount+this.rightCount) - this.leftCount%4 - 1 - (this.rightCount-1)%4||4}`, leftX, handStatusY + vpad);
              leftX+=padding;
         // }
         
