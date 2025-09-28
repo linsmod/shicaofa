@@ -469,7 +469,6 @@ class GameInfoPanel extends UIElement {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
         this.drawRoundedRect(ctx, this.x, this.y, this.width, this.height, 3);
 
-        console.log(canvasWidth,canvasWidth);
         // 绘制边框
         ctx.strokeStyle = 'rgba(255, 215, 0, 0.3)';
         ctx.lineWidth = 1;
