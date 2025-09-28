@@ -307,7 +307,7 @@ class GameScene extends Scene {
         // UI元素
         this.settingsPanel = null;
         this.gameInfoPanel = null;
-        this.settingsButton = null;
+        this.settingButton = null;
         this.initStalks(49);
         this.initMultiCanvasSystem();
         this.initProgressCanvas();
@@ -445,13 +445,6 @@ class GameScene extends Scene {
         
         // 清空trail数组，确保特效使用最新的坐标
         this.trail = [];
-        
-        // // 如果正在拖拽，重置拖拽状态
-        // if (this.isDragging) {
-        //     this.isDragging = false;
-        //     this.lastX = 0;
-        //     this.lastY = 0;
-        // }
     }
 
     /**
@@ -1157,7 +1150,7 @@ class GameScene extends Scene {
         const ctx = this.engine.getContext();
 
         // 创建设置按钮
-        this.settingsButton = new ImageButton(
+        this.settingButton = new ImageButton(
             canvasWidth - 60,
             20,
             50,
@@ -1165,7 +1158,7 @@ class GameScene extends Scene {
             'setting.png',
             () => this.toggleSettings()
         );
-        this.settingsButton.setMaintainAspectRatio(true);
+        this.settingButton.setMaintainAspectRatio(true);
 
         // 创建设置面板
         this.settingsPanel = new SettingsPanel(
@@ -1186,7 +1179,7 @@ class GameScene extends Scene {
 
     registerUIElements() {
         // 注册所有按钮
-        this.registerUIElement(this.settingsButton);
+        this.registerUIElement(this.settingButton);
         
         // 始终注册设置面板，这样关闭按钮才能正常工作
         if (this.settingsPanel) {
@@ -1529,7 +1522,7 @@ class GameScene extends Scene {
         this.renderProgressCanvas();
 
         // 渲染UI元素
-        if (this.settingsButton) this.settingsButton.render(ctx);
+        if (this.settingButton) this.settingButton.render(ctx);
         if (this.restartButton) this.restartButton.render(ctx);
         if (this.logsButton) this.logsButton.render(ctx);
         if (this.settingsPanel) this.settingsPanel.render(ctx);

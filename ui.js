@@ -168,38 +168,7 @@ class Button extends UIElement {
         const drawX = this.x + offsetX;
         const drawY = this.y + offsetY;
 
-        // 绘制按钮背景
-        if (this.backgroundColor.startsWith('linear-gradient')) {
-            // 解析渐变字符串中的颜色值
-            const gradientMatch = this.backgroundColor.match(/linear-gradient\([^,]+,\s*([^,]+),\s*([^)]+)\)/);
-            if (gradientMatch) {
-                const color1 = gradientMatch[1].trim();
-                const color2 = gradientMatch[2].trim();
-                
-                const gradient = ctx.createLinearGradient(drawX, drawY, drawX, drawY + this.height);
-                if (this.isPressed) {
-                    gradient.addColorStop(0, color2);
-                    gradient.addColorStop(1, color1);
-                } else {
-                    gradient.addColorStop(0, color1);
-                    gradient.addColorStop(1, color2);
-                }
-                ctx.fillStyle = gradient;
-            } else {
-                // 如果解析失败，使用默认颜色
-                const gradient = ctx.createLinearGradient(drawX, drawY, drawX, drawY + this.height);
-                if (this.isPressed) {
-                    gradient.addColorStop(0, '#A0522D');
-                    gradient.addColorStop(1, '#8B4513');
-                } else {
-                    gradient.addColorStop(0, '#8B4513');
-                    gradient.addColorStop(1, '#A0522D');
-                }
-                ctx.fillStyle = gradient;
-            }
-        } else {
-            ctx.fillStyle = this.backgroundColor;
-        }
+        this.setFillStyle(ctx, drawX, drawY, this.width, this.height,this.backgroundColor);
 
         // 绘制圆角矩形
         this.drawRoundedRect(ctx, drawX, drawY, this.width, this.height, 25);
@@ -279,46 +248,12 @@ class ImageButton extends Button {
     }
 
     render(ctx) {
-        if (!this.visible || !this.enabled) return;
-
         // 计算绘制位置（按下时添加位移）
         const offsetX = this.isPressed ? 2 : 0;
         const offsetY = this.isPressed ? 2 : 0;
         const drawX = this.x + offsetX;
         const drawY = this.y + offsetY;
-
-        // 绘制按钮背景
-        if (this.backgroundColor.startsWith('linear-gradient')) {
-            // 解析渐变字符串中的颜色值
-            const gradientMatch = this.backgroundColor.match(/linear-gradient\([^,]+,\s*([^,]+),\s*([^)]+)\)/);
-            if (gradientMatch) {
-                const color1 = gradientMatch[1].trim();
-                const color2 = gradientMatch[2].trim();
-                
-                const gradient = ctx.createLinearGradient(drawX, drawY, drawX, drawY + this.height);
-                if (this.isPressed) {
-                    gradient.addColorStop(0, color2);
-                    gradient.addColorStop(1, color1);
-                } else {
-                    gradient.addColorStop(0, color1);
-                    gradient.addColorStop(1, color2);
-                }
-                ctx.fillStyle = gradient;
-            } else {
-                // 如果解析失败，使用默认颜色
-                const gradient = ctx.createLinearGradient(drawX, drawY, drawX, drawY + this.height);
-                if (this.isPressed) {
-                    gradient.addColorStop(0, '#A0522D');
-                    gradient.addColorStop(1, '#8B4513');
-                } else {
-                    gradient.addColorStop(0, '#8B4513');
-                    gradient.addColorStop(1, '#A0522D');
-                }
-                ctx.fillStyle = gradient;
-            }
-        } else {
-            ctx.fillStyle = this.backgroundColor;
-        }
+        this.setFillStyle(ctx,drawX, drawY, this.width, this.height,this.backgroundColor);
 
         // 绘制圆角矩形
         this.drawRoundedRect(ctx, drawX, drawY, this.width, this.height, 25);
@@ -564,7 +499,7 @@ class GameInfoPanel extends UIElement {
             ctx.fillText(`?`, leftX, handStatusY + vpad);
             ctx.fillStyle = '#99ff69ff';
             ctx.font = 'bold 1.0rem "Microsoft YaHei", sans-serif';
-            ctx.fillText(`<划拉屏幕开始取爻>`, canvasWidth/2-150, canvasHeight/2-100);
+            ctx.fillText(`<划拉屏幕开始取爻>`, canvasWidth/2, canvasHeight/2);
         }
         leftX+=padding;
 

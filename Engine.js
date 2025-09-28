@@ -641,10 +641,14 @@ class UIEventSystem {
  */
 class UIElement {
     constructor(x, y, width, height) {
-        this.x = x;
-        this.y = y;
-        this.width = width;
-        this.height = height;
+        this.calcx = x instanceof Function?x:()=>x;
+        this.calcy = y instanceof Function?y:()=>y;
+        this.calcw = width instanceof Function?width:()=>width;
+        this.calch = height instanceof Function?height:()=>height;
+        this.x = this.calcx();
+        this.y = this.calcy();
+        this.width = this.calcw();
+        this.height = this.calch();
         this.visible = true;
         this.enabled = true;
         this.isHovered = false;
@@ -736,6 +740,40 @@ class UIElement {
      */
     setEnabled(enabled) {
         this.enabled = enabled;
+    }
+    
+    setFillStyle(ctx,x,y,w,h,c){
+        if (c.startsWith('linear-gradient')) {
+            // 解析渐变字符串中的颜色值 - 支持多色渐变
+            const colors = [];
+            
+            // 简单的解析：找到所有十六进制颜色值
+            const colorMatches = c.match(/#([0-9a-fA-F]{8}|[0-9a-fA-F]{6})/g);
+            if (colorMatches && colorMatches.length >= 2) {
+                colors.push(...colorMatches);
+            } else {
+                console.warn('渐变解析失败: 需要至少2个颜色值', {
+                    original: c,
+                    colorMatches: colorMatches,
+                    fallback: ['#2E8B57', '#228B22']
+                });
+                // 使用默认渐变
+                colors.push('#2E8B57', '#228B22');
+            }
+            
+            // 创建从上到下的渐变
+            const gradient = ctx.createLinearGradient(x, y, x, y + h);
+            
+            // 均匀分布颜色
+            for (let i = 0; i < colors.length; i++) {
+                gradient.addColorStop(i / (colors.length - 1), colors[i].trim());
+            }
+            
+            ctx.fillStyle = gradient;
+        } else {
+            // 使用纯色
+            ctx.fillStyle = c;
+        }
     }
 }
 
@@ -888,38 +926,9 @@ class Scene extends UIElement {
             this.children.splice(index, 1);
         }
     }
+    
     clearRect(ctx, x, y, w, h, c){
-        if (c.startsWith('linear-gradient')) {
-            // 解析渐变字符串中的颜色值 - 支持多色渐变
-            const colors = [];
-            
-            // 简单的解析：找到所有十六进制颜色值
-            const colorMatches = c.match(/#([0-9a-fA-F]{8}|[0-9a-fA-F]{6})/g);
-            if (colorMatches && colorMatches.length >= 2) {
-                colors.push(...colorMatches);
-            } else {
-                console.warn('渐变解析失败: 需要至少2个颜色值', {
-                    original: c,
-                    colorMatches: colorMatches,
-                    fallback: ['#2E8B57', '#228B22']
-                });
-                // 使用默认渐变
-                colors.push('#2E8B57', '#228B22');
-            }
-            
-            // 创建从上到下的渐变
-            const gradient = ctx.createLinearGradient(x, y, x, y + h);
-            
-            // 均匀分布颜色
-            for (let i = 0; i < colors.length; i++) {
-                gradient.addColorStop(i / (colors.length - 1), colors[i].trim());
-            }
-            
-            ctx.fillStyle = gradient;
-        } else {
-            // 使用纯色
-            ctx.fillStyle = c;
-        }
+        this.setFillStyle(ctx,x,y,w,h,c);
         
         // 填充整个区域
         ctx.fillRect(x, y, w, h);
