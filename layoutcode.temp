@@ -1,0 +1,210 @@
+
+
+    parseNumber(d, presetvalue = 0) {
+        if (d === null || d === undefined) {
+            return presetvalue;
+        }
+        let num;
+        if (typeof d === 'number') {
+            if (isNaN(d)) {
+                console.warn('Invalid number: NaN');
+                return presetvalue;
+            }
+            return d;
+        }
+        if (typeof d === 'string') {
+            d = d.trim();
+            if (d === '') {
+                console.warn('Empty string is not a valid number');
+                return presetvalue;
+            }
+
+            // 更精确的正则：匹配整数、小数、负数，拒绝孤立符号
+            if (!/^-?(\d+\.?\d*|\.\d+)$/.test(d)) {
+                console.warn(`Invalid number string: "${d}"`);
+                return presetvalue;
+            }
+
+            num = parseFloat(d);
+            if (isNaN(num)) {
+                console.warn(`Invalid number: "${d}"`);
+                return presetvalue;
+            }
+            return num;
+        }
+
+        console.warn(`Unsupported type: ${typeof d}`);
+        return presetvalue;
+    }
+    resolveStyle(obj) {
+        const preset = obj.preset || {};
+        const keys = [
+            'width', 'height',
+            'borderLeft', 'borderRight', 'borderTop', 'borderBottom',
+            'paddingLeft', 'paddingRight', 'paddingTop', 'paddingBottom',
+            'left', 'top', 'right', 'bottom'
+        ];
+
+        keys.forEach(key => {
+            obj[key] = parseNumber(obj[key], preset[key]);
+        });
+    }
+    layoutObject(obj, parentRect, ctx) {
+        const { width, height, left, top, right, bottom } = obj;
+
+        // 默认布局矩形
+        obj._layout = { x: 0, y: 0, width: 0, height: 0 };
+
+        if (obj.type === 'StackPanel') {
+            this.layoutStackPanel(obj, parentRect, ctx);
+        } 
+        else if (obj.type === 'TextBlock') {
+            this.layoutTextBlock(obj, parentRect, ctx);
+        }
+        else {
+            // 普通元素：绝对或相对定位
+            this.layoutNormalObject(obj, parentRect);
+        }
+    }
+    layoutNormalObject(obj, parentRect) {
+        const { width, height, left, top, right, bottom } = obj;
+
+        let x, y, w, h;
+
+        // 宽度
+        if (width !== null) {
+            w = width;
+        } else if (left !== null && right !== null) {
+            w = parentRect.width - left - right;
+        } else {
+            w = 0; // 默认
+        }
+
+        // 高度
+        if (height !== null) {
+            h = height;
+        } else if (top !== null && bottom !== null) {
+            h = parentRect.height - top - bottom;
+        } else {
+            h = 0;
+        }
+
+        // X
+        if (left !== null) {
+            x = left;
+        } else if (right !== null) {
+            x = parentRect.width - right - w;
+        } else {
+            x = 0;
+        }
+
+        // Y
+        if (top !== null) {
+            y = top;
+        } else if (bottom !== null) {
+            y = parentRect.height - bottom - h;
+        } else {
+            y = 0;
+        }
+
+        obj._layout = { x, y, width: w, height: h };
+    }
+    layoutTextBlock(obj, parentRect, ctx) {
+        // 设置字体样式
+        ctx.font = `${obj.fontSize || 16}px ${obj.fontFamily || 'sans-serif'}`;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+
+        const text = obj.text || '';
+        let width = obj.width;
+        let height = obj.height;
+
+        // 如果宽度是 auto，测量文本
+        if (width === 'auto') {
+            const metrics = ctx.measureText(text);
+            width = metrics.width + 10; // 加点 padding
+        }
+
+        // 高度 auto：使用字体大小估算
+        if (height === 'auto') {
+            height = (obj.fontSize || 16) * 1.2;
+        }
+
+        // 临时设置，以便父容器使用
+        obj.width = width;
+        obj.height = height;
+
+        // 使用通用布局
+        this.layoutNormalObject(obj, parentRect);
+    }
+    layoutStackPanel(obj, parentRect, ctx) {
+        const direction = obj.orientation === 'horizontal' ? 'row' : 'column';
+        const spacing = obj.spacing || 0;
+        let x = 0, y = 0;
+
+        // 获取内容区域（扣除边框和内边距）
+        const padding = {
+            left: obj.borderLeft + obj.paddingLeft,
+            right: obj.borderRight + obj.paddingRight,
+            top: obj.borderTop + obj.paddingTop,
+            bottom: obj.borderBottom + obj.paddingBottom
+        };
+
+        x += padding.left;
+        y += padding.top;
+
+        let maxWidth = 0;
+        let maxHeight = 0;
+
+        for (const child of obj.children) {
+            if (!child.visible) continue;
+
+            // 递归布局子元素
+            this.resolveStyle(child);
+            this.layoutObject(child, { width: obj.width, height: obj.height }, ctx);
+
+            const layout = child._layout;
+
+            if (direction === 'row') {
+                layout.x = x;
+                layout.y = y;
+                x += layout.width + spacing;
+                maxHeight = Math.max(maxHeight, layout.height);
+            } else { // column
+                layout.x = x;
+                layout.y = y;
+                y += layout.height + spacing;
+                maxWidth = Math.max(maxWidth, layout.width);
+            }
+        }
+
+        // 设置 StackPanel 自身大小（如果 width/height 是 auto）
+        const finalWidth = obj.width !== 'auto' ? obj.width : maxWidth + padding.left + padding.right;
+        const finalHeight = obj.height !== 'auto' ? obj.height : maxHeight + padding.top + padding.bottom;
+
+        obj._layout = {
+            x: 0, y: 0,
+            width: finalWidth,
+            height: finalHeight
+        };
+    }
+    // set the obj's rect: x,y,width,height
+    processLayout(layer, ctx, canvasWidth, canvasHeight) {
+        const items = [];
+        this.collectVisible(layer, items, 0);
+
+        // 根容器尺寸
+        const rootRect = { x: 0, y: 0, width: canvasWidth, height: canvasHeight };
+
+        for (const item of items) {
+            const obj = item.obj;
+            const parent = item.parent;
+            const parentRect = parent ? parent._layout || rootRect : rootRect;
+
+            // 1. 解析尺寸和边距
+            this.resolveStyle(obj);
+
+            // 2. 根据类型布局
+            this.layoutObject(obj, parentRect, ctx);
+        }
+    }

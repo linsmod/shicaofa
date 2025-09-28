@@ -971,6 +971,14 @@ class GameScene extends Scene {
         if (this.effectSystem.rightCanvas) {
             this.effectSystem.rightCanvas.style.display = 'none';
         }
+        if(this.finishAction){
+            const action = this.finishAction;
+            this.finishAction = null;
+            action();
+            setTimeout(() => {
+                this.enabled = true;
+            }, 100);
+        }
     }
 
     doStalksAlgorithm() {
@@ -1058,7 +1066,7 @@ class GameScene extends Scene {
             if(this.yaos.length==6){
                 this.enabled= false;
                 
-                this.finish(()=>{
+                this.delayFinish(()=>{
                     this.nextScene = 'result'
                     this.sceneResult = Array.from(this.yaos);
                     this.yaos = []
@@ -1071,8 +1079,8 @@ class GameScene extends Scene {
         }
         this.lastresult = result;
     }
-    finish(action){
-        this.finshAction = action;
+    delayFinish(action){
+        this.finishAction = action;
     }
 
     /**

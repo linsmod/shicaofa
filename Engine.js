@@ -445,6 +445,8 @@ class UIEventSystem {
         this.pressY = 0;
         this.dragThreshold = 5;            // 拖拽触发的最小位移（像素）
         this.dialogObject = null;
+        this.canvasWidth = 800;
+        this.canvasHeight = 600;
     }
 
     /**
@@ -583,6 +585,32 @@ class UIEventSystem {
 
         // 3. 清除捕获
         this.capturedObject = null;
+    }
+
+
+    collectVisible(layer, collection,depth){
+        if(layer.dialogs){
+            for (let i = layer.dialogs.length - 1; i >= 0; i--) {
+                const obj = layer.dialogs[i];
+                if(obj.visible !== false){
+                    if(obj.children && obj.children.length)
+                        elementsVisible(obj,collection, depth);
+                    else{
+                        collection.push({obj,depth,parent:layer});
+                    }
+                }
+            }
+        }
+        for (let i = layer.children.length - 1; i >= 0; i--) {
+            const obj = layer.children[i];
+            if(obj.visible !== false){
+                if(obj.children && obj.children.length)
+                    elementsVisible(obj,collection,depth);
+                else{
+                    collection.push(obj);
+                }
+            }
+        }
     }
 
     /**
